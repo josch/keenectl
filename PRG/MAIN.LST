@@ -1,0 +1,1885 @@
+文件：MAIN.ASM     盛群编译器版本 2.86 页次1
+
+
+   1  0000              ;*******************************************************************************
+   2  0000              ;*
+   3  0000              ;*  (c) Copyright 2005, Holtek Semiconductor Inc.
+   4  0000              ;* 
+   5  0000              ;******************************************************************************/
+   6  0000              ;*******************************************************************************
+   7  0000              ;MODULE:	main.asm
+   8  0000              
+   9  0000              ;INITIAL:	09/14/2006
+  10  0000              
+  11  0000              ;AUTHOR:	C351  Ansonku.
+  12  0000              
+  13  0000              ;NOTE:	 	HT82A821R , HT82A822R Main Function
+  14  0000              
+  15  0000              ;VERSION:	1.2
+  16  0000              ;Function:
+  17  0000              ;key debounced	N
+  18  0000              ;oled		N
+  19  0000              ;volume adjust	Y
+  20  0000              ;2005/05/13     Update Key Debounce
+  21  0000              ;2005/05/25	Modify Pop noise
+  22  0000              ;2005/06/06     Modify Send_Hand_Shake
+  23  0000              ;2005/06/10	耞 token ,安砞笿setup scmd,璶弄8 bytes睲埃scmd籔len0
+  24  0000              ;2005/12/20	USB 瑈祘эノ jmp よΑ implement
+  25  0000              ;2005/12/20	盢 suspend 耞э main function い
+  26  0000              ;*******************************************************************************
+  27  0000              
+  28  0000              ;***************************************************************
+  29  0000              ;Include File
+  30  0000              ;ht82a822.inc		ht82a822r register address defined
+  31  0000              ;const.inc		user defined
+  32  0000              ;macro.asm		macro function
+  33  0000              ;***************************************************************
+  34  0000              #include		ht82a821r.inc
+
+
+  35  0000              #include		const.inc
+
+
+  36  0000              #include		macro.asm
+
+
+  37  0000              
+  38  0000              #define			WaitBias	0
+  39  0000              
+  40  0000              ;====================================================================
+  41  0000              ;Variable Defined , DATA 眖 40H 秨﹍
+  42  0000              ;====================================================================
+  43  0000              DATA		.SECTION		AT	40H		'DATA'
+  44  0000              #include		memory.inc
+
+
+  45  000F              ;***************************************************************
+  46  000F              ;		USB ISR Var (い耞称ノ)
+  47  000F              ;***************************************************************
+  48  000F  00          isr_usb_acc		DB		?
+  49  0010  00          isr_usb_status		DB		?
+  50  0011  00          isr_usb_mp1		DB		?
+  51  0012  00          isr_usb_mp0		DB		?
+文件：MAIN.ASM     盛群编译器版本 2.86 页次2
+
+  52  0013  00          isr_usb_tblp		DB		?
+  53  0014              ;***************************************************************
+  54  0014              ;		Timer0 ISR Var (い耞称ノ)
+  55  0014              ;***************************************************************
+  56  0014              ;;isr_tmr0_acc		DB		?
+  57  0014              ;;isr_tmr0_status		DB		?
+  58  0014              ;;isr_tmr0_mp1		DB		?
+  59  0014              ;;isr_tmr0_mp0		DB		?
+  60  0014              ;;isr_tmr0_tblp		DB		?
+  61  0014              ;***************************************************************
+  62  0014              ;		Timer1 ISR Var (い耞称ノ)
+  63  0014              ;***************************************************************
+  64  0014              ;;isr_tmr1_acc		DB		?
+  65  0014              ;;isr_tmr1_status		DB		?
+  66  0014              ;;isr_tmr1_mp1		DB		?
+  67  0014              ;;isr_tmr1_mp0		DB		?
+  68  0014              ;;isr_tmr1_tblp		DB		?
+  69  0014              
+  70  0014              ;***************************************************************
+  71  0014              ;		Delay 跑计
+  72  0014              ;***************************************************************
+  73  0014  00          Delay_1			DB		?
+  74  0015  00          Delay_2			DB		?
+  75  0016  00          Delay_3			DB		?
+  76  0017              
+  77  0017              ;***************************************************************
+  78  0017              ;USB FIFO Variable
+  79  0017              ;USB_Interface : to save usb current interface number
+  80  0017              ;USB_Interface_Alt : to save usb current alternate of interface number
+  81  0017              ;USB_Configuration : to save USB configuration number
+  82  0017              ;FIFO_ADDR     : to save USB ADDRESS
+  83  0017              ;Loop_Counter , Data_Count , Data_Start : control_read variable
+  84  0017              ;***************************************************************
+  85  0017              ;For FIFO Access
+  86  0017  00          FIFO_SIZE			db		?
+  87  0018  00          FIFO_SendLen			db		?
+  88  0019              FIFO_out1			label	byte
+  89  0019  00          FIFO_Type			db		?
+  90  001A              FIFO_out2			label	byte
+  91  001A  00          FIFO_Request			db		?
+  92  001B              FIFO_out3			label	byte
+  93  001B  00          FIFO_wValueL			db		?
+  94  001C              FIFO_out4			label	byte
+  95  001C  00          FIFO_wValueH			db		?
+  96  001D              FIFO_out5			label	byte
+  97  001D  00          FIFO_wIndexL			db		?
+  98  001E              FIFO_out6			label	byte
+  99  001E  00          FIFO_wIndexH			db		?
+ 100  001F              FIFO_out7			label	byte
+ 101  001F  00          FIFO_wLengthL			db		?
+ 102  0020              FIFO_out8			label	byte
+ 103  0020  00          FIFO_wLengthH			db		?
+ 104  0021              
+ 105  0021  00          FIFO_TEMP			db		?
+ 106  0022              ;**************************************************************
+ 107  0022              ;USB 篈既
+ 108  0022              ;
+ 109  0022              ;
+ 110  0022              ;**************************************************************
+ 111  0022  00          USB_Interface			db		?
+文件：MAIN.ASM     盛群编译器版本 2.86 页次3
+
+ 112  0023  00          USB_Interface_Alt		db		?
+ 113  0024  00          USB_Configuration		db		?
+ 114  0025              ;//save usb address
+ 115  0025  00          FIFO_ADDR			db		?
+ 116  0026              
+ 117  0026  00          Loop_Counter			db		?
+ 118  0027  00          Data_Count			db		?
+ 119  0028  00          Data_Start			db		?
+ 120  0029              
+ 121  0029              ;voice control
+ 122  0029  00          INC_Counter			db		?
+ 123  002A  00          DEC_Counter			db		?
+ 124  002B              
+ 125  002B              
+ 126  002B              ;FIFO
+ 127  000E              bFlag_SetConfiguration_Ready	dbit		
+ 128  000E              bFlag_SetInterface_Ready	dbit		
+ 129  000E              bFlag_Real_Cmd			dbit		
+ 130  000E              bFlag_FIFO_Ready		dbit
+ 131  000E              bFlag_FIFO_LEN0			dbit
+ 132  000E              bFlag_RD_HTable			dbit
+ 133  000E              bFlag_wait_control_out		dbit
+ 134  002B  00          bFlag_SET_ADDRESS		dbit
+ 135  002B              bFlag_SCMD			dbit
+ 136  002B              bFlag_Enum_Ready		dbit
+ 137  002C              ;Audio
+ 138  002C  00          PortC_data			db	?
+ 139  002B              bFlag_Audio_Mute		dbit
+ 140  002D  00          Volume1				db	?
+ 141  002E  00          Volume2				db	?
+ 142  002F              
+ 143  002F              ;Mute_Save			db	?
+ 144  002F  00          VolumeH_Save			db	?
+ 145  0030  00          VolumeL_Save			db	?
+ 146  0031              
+ 147  0031  00          nCmdIndex1			db	?
+ 148  0032              
+ 149  0032              
+ 150  0032              ;**************************************************************
+ 151  0032              ;Key 篈既
+ 152  0032              ;
+ 153  0032              ;
+ 154  0032              ;**************************************************************
+ 155  0032              
+ 156  0032              ;;Key_Process			db	?
+ 157  0032              ;;Key_CheckIn			db	?
+ 158  0032              ;;Key_Counter			db	?
+ 159  0032              ;;Key_Temp			db	?
+ 160  0032              ;;Key_IncCounter			db	?
+ 161  0032              ;;Key_DecCounter			db	?
+ 162  0032              
+ 163  0032              ;modify for Remote Wakeup
+ 164  002B              bRmtWakeup      		dbit
+ 165  002B              b_wakeup        		dbit
+ 166  0032              ;modify 2007-06-27
+ 167  002B              b_forceresumeWakeup		dbit
+ 168  0032              ;modify 2007-07-03
+ 169  002B              b_forusbRst                     dbit
+ 170  0032  00          bFlagTMR1				dbit
+ 171  0033              
+文件：MAIN.ASM     盛群编译器版本 2.86 页次4
+
+ 172  0033              ;;***********************************************
+ 173  0033              
+ 174  0033              extern			control_read_table:NEAR        
+ 175  0033              extern			device_desc_table:NEAR         
+ 176  0033              extern			config_desc_table:NEAR         
+ 177  0033              
+ 178  0033              extern			end_config_desc_table:NEAR  
+ 179  0033              extern			hid_report_desc_table:NEAR
+ 180  0033              extern			end_hid_report_desc_table:NEAR
+ 181  0033              
+ 182  0033              extern			USBStringLanguageDescription:NEAR
+ 183  0033              extern			USBStringDescription1:NEAR
+ 184  0033              extern			USBStringDescription2:NEAR
+ 185  0033              
+ 186  0033              extern			config_desc_length:NEAR
+ 187  0033              extern			report_desc_length:NEAR
+ 188  0033              ;function
+ 189  0033              extern			Control_Read:NEAR
+ 190  0033              extern			FIFO0_RD_CHECK:NEAR
+ 191  0033              extern			FIFO1_RD_CHECK:NEAR
+ 192  0033              extern			FIFO2_RD_CHECK:NEAR
+ 193  0033              extern			FIFO3_RD_CHECK:NEAR
+ 194  0033              extern			FIFO4_RD_CHECK:NEAR
+ 195  0033              extern			FIFO5_RD_CHECK:NEAR
+ 196  0033              extern			FIFO0_WR_CHECK:NEAR
+ 197  0033              extern			FIFO1_WR_CHECK:NEAR
+ 198  0033              extern			FIFO2_WR_CHECK:NEAR
+ 199  0033              extern			FIFO3_WR_CHECK:NEAR
+ 200  0033              extern			FIFO4_WR_CHECK:NEAR
+ 201  0033              extern			FIFO5_WR_CHECK:NEAR
+ 202  0033              extern			Read_FIFO0:NEAR
+ 203  0033              extern			Read_FIFO1:NEAR
+ 204  0033              extern			Read_FIFO2:NEAR
+ 205  0033              extern			Read_FIFO3:NEAR
+ 206  0033              extern			Read_FIFO4:NEAR
+ 207  0033              extern			Read_FIFO5:NEAR
+ 208  0033              extern			Write_FIFO0:NEAR
+ 209  0033              extern			Write_FIFO1:NEAR
+ 210  0033              extern			Write_FIFO2:NEAR
+ 211  0033              extern			Write_FIFO3:NEAR
+ 212  0033              extern			Write_FIFO4:NEAR
+ 213  0033              extern			Write_FIFO5:NEAR
+ 214  0033              extern			Send_Hand_Shake:NEAR
+ 215  0033              extern			get_descriptor_length:NEAR
+ 216  0033              
+ 217  0033              extern			SetAddress:NEAR
+ 218  0033              extern			SetConfiguration:NEAR
+ 219  0033              extern			SetInterface:NEAR
+ 220  0033              extern			GetInterface:NEAR
+ 221  0033              extern			GetDescriptor:NEAR
+ 222  0033              extern			SetIdle:NEAR
+ 223  0033              extern			GetDeviceDescriptor:NEAR
+ 224  0033              extern			GetConfigurationDescriptor:NEAR
+ 225  0033              extern			GetStringDescriptor:NEAR
+ 226  0033              extern			GetStatus:NEAR
+ 227  0033              ;modify for Remote Wakeup
+ 228  0033              extern			GetStatus_Interface:NEAR
+ 229  0033              ;----------------------------------------------
+ 230  0033              extern			SetFeature:NEAR
+ 231  0033              extern			ClearFeature:NEAR
+文件：MAIN.ASM     盛群编译器版本 2.86 页次5
+
+ 232  0033              extern			SetReport:NEAR
+ 233  0033              extern			Execute:NEAR
+ 234  0033              extern			SendStall0:NEAR
+ 235  0033              extern			Delay_3us:NEAR
+ 236  0033              
+ 237  0033              extern			SetFeature_Endpoint:NEAR
+ 238  0033              extern			ClearFeature_Endpoint:NEAR
+ 239  0033              extern			GetStatus_Endpoint:NEAR
+ 240  0033              
+ 241  0033              extern			Check_Real_Cmd:NEAR
+ 242  0033              extern			GetConfiguration:NEAR
+ 243  0033              
+ 244  0033              
+ 245  0033              ;audio
+ 246  0033              extern		SetCur:NEAR
+ 247  0033              extern		GetMin:NEAR
+ 248  0033              extern		GetMax:NEAR
+ 249  0033              extern		GetRes:NEAR
+ 250  0033              extern		GetCur:NEAR
+ 251  0033              
+ 252  0033              extern		GetPipeBit:NEAR
+ 253  0033              ;***************************************************************
+ 254  0033              ;		MCU Interrupt Table
+ 255  0033              ;***************************************************************
+ 256  0033              
+ 257  0033              
+ 258  0000              CODE            .section        AT 00H 'code'
+ 259  0000              		ORG		00H
+ 260  0000  2820        		jmp		Start
+ 261  0001              		ORG		04H
+ 262  0004  289D        		jmp		USB_ISR
+ 263  0005              		ORG		08H
+ 264  0008  2898        		jmp		Timer_0_ISR
+ 265  0009              		ORG		0CH
+ 266  000C  2899        		jmp		Timer_1_ISR
+ 267  000D              
+ 268  000D              
+ 269  000D              	;-----------------------------------------------------------
+ 270  000D              	; Start : ORG 20H 磷秨玡 interrupt
+ 271  000D              	;-----------------------------------------------------------
+ 272  000D              ORG	20H
+ 273  0020              Start:
+ 274  0020              
+ 275  0020  2052        		call	System_Initial
+ 276  0021              
+ 277  0021              	;-----------------------------------------------------------
+ 278  0021              	; Main LOOP Function  : 
+ 279  0021              	;-----------------------------------------------------------
+ 280  0021              Main:
+ 281  0021              	;-----------------------------------------------------------
+ 282  0021              	; Check Suspend Function  :
+ 283  0021              	; 材Ω浪琩 suspend 莱璶 delay 1 S 浪琩Ω , 狦 suspend 癟腹临秈 halt
+ 284  0021              	; 叫浪琩 timer 琌Τ秨币 , 璝Τ莱既闽超 ,  resume 秨币 
+ 285  0021              	;-----------------------------------------------------------
+ 286  0021  3820        		SNZ		USC.@USC_SUSP		;check SUSPEND ?
+ 287  0022  2841        		JMP		Main_My_Function
+ 288  0023              
+ 289  0023  2205        		call		wait_about_1s
+ 290  0024  3820        		SNZ		USC.@USC_SUSP
+ 291  0025  2841        		JMP		Main_My_Function
+文件：MAIN.ASM     盛群编译器版本 2.86 页次6
+
+ 292  0026              	
+ 293  0026              ToSuspend_again:		
+ 294  0026  0001        		clr wdt
+ 295  0027              ;;		clr		TMR1C.4
+ 296  0027  3414        		clr		USB_LED_ON
+ 297  0028  35A2        		clr		UCC.@UCC_USBCKEN
+ 298  0029  376B        		clr	b_forceresumeWakeup
+ 299  002A              		;clr b_forusbRst
+ 300  002A              	;-----------------------------------------------------------
+ 301  002A              	; Resume  Function  : 
+ 302  002A              	;  function 璶р halt ぇ玡 timer 篈確 , 秨币 USBCKEN
+ 303  002A              	;-----------------------------------------------------------
+ 304  002A  0002        		HALT
+ 305  002B              ;;		set		TMR1C.4		
+ 306  002B  3014        		set		USB_LED_ON
+ 307  002C  31A2        		set		UCC.@UCC_USBCKEN
+ 308  002D              
+ 309  002D              		;modify 2007-06-28
+ 310  002D  3023        		set     	AWR.@AWR_WKEN
+ 311  002E              
+ 312  002E              		;sZ   b_forusbRst
+ 313  002E                     	;JMP  Start
+ 314  002E                      
+ 315  002E  3F6B        		sz		b_forceresumeWakeup        
+ 316  002F  2836        		jmp		RemoteWakeup
+ 317  0030              
+ 318  0030  3AEB        	 	snz     b_wakeup
+ 319  0031  2835            	jmp    RemoteWakeup_loop
+ 320  0032              	   	;clr    b_wakeup
+ 321  0032  3A6B           		snz     	bRmtWakeup                      ; 浪琩USB device琌Enable RemoteWakeup
+ 322  0033  2826           		jmp     	ToSuspend_again                 ; 璝bRmtWakeup=0,玥suspend
+ 323  0034  366B        		clr		bRmtWakeup
+ 324  0035                 		
+ 325  0035              ;modify for Remote Wakeup
+ 326  0035              RemoteWakeup_loop:
+ 327  0035  36EB              	clr    b_wakeup
+ 328  0036              
+ 329  0036              
+ 330  0036                     	;sz		b_forceresumeWakeup        
+ 331  0036              		;jmp		RemoteWakeup
+ 332  0036              	
+ 333  0036              		;sz     	USC.@USC_SUSP                   	;
+ 334  0036                      ;jmp     ToSuspend_again                 ; 
+ 335  0036              		;JMP		Main
+ 336  0036              
+ 337  0036              RemoteWakeup:
+ 338  0036              		;modify 2007-06-27
+ 339  0036  376B        		clr		b_forceresumeWakeup
+ 340  0037  30A0                SET   		USC.@USC_RMWK    ; USC.RMWK=1
+ 341  0038  0000                nop
+ 342  0039  0000                nop
+ 343  003A  0000                nop
+ 344  003B  0000                nop
+ 345  003C  0000                nop
+ 346  003D  0000                nop
+ 347  003E  34A0                CLR   		USC.@USC_RMWK     ; USC.RMWK=0
+ 348  003F              		;clr			AWR.@AWR_WKEN
+ 349  003F                      ;sZ   b_forusbRst
+ 350  003F                      ;JMP  Start
+ 351  003F              
+文件：MAIN.ASM     盛群编译器版本 2.86 页次7
+
+ 352  003F  3C20        		SZ		USC.@USC_SUSP		;check SUSPEND ?
+ 353  0040  2821        		JMP		Main
+ 354  0041              
+ 355  0041              ;-----------------------------------------------------
+ 356  0041              Main_My_Function:
+ 357  0041  0001        	CLR	WDT
+ 358  0042  38CE        	SNZ	bFlag_SetConfiguration_Ready
+ 359  0043  2821        	JMP	main					;;USB Not OK
+ 360  0044              
+ 361  0044              ;----------------------------------------------------	
+ 362  0044  3C4E        	SZ	bIniFMOK
+ 363  0045  284C        	JMP	L_MyFunction				;;IniFM OK
+ 364  0046              	
+ 365  0046  0F18        	MOV	A,cFreqDefL
+ 366  0047  00C7        	MOV	mFreqL,A
+ 367  0048  0F01        	MOV	A,cFreqDefH
+ 368  0049  00C8        	MOV	mFreqH,A
+ 369  004A  2294        	CALL	QN8072Init				;;Init QN8072
+ 370  004B  304E        	SET	bIniFMOK
+ 371  004C              
+ 372  004C              	;-----------------------------------------------------------
+ 373  004C              	; Here to add your another code !!
+ 374  004C              	;-----------------------------------------------------------
+ 375  004C              L_MyFunction:
+ 376  004C  0001        		clr wdt	
+ 377  004D  0000        		NOP		
+ 378  004E  3872        		snz bFlagTMR1
+ 379  004F              ;;		jmp Main_End
+ 380  004F              ;;		IF	UseMediaKey
+ 381  004F              ;;		call		Key_Debounced
+ 382  004F              ;;		ENDIF
+ 383  004F  21D6        		call		Run_Volume_Step		
+ 384  0050              
+ 385  0050  3472        		clr bFlagTMR1
+ 386  0051              
+ 387  0051              Main_End:
+ 388  0051              
+ 389  0051  2821        		JMP		Main
+ 390  0052              
+ 391  0052              ;***************************************************************
+ 392  0052              ;		System Initial
+ 393  0052              ;		1.ram_initial
+ 394  0052              ;		1.Timer Initial
+ 395  0052              ;		2.USB Config
+ 396  0052              ;***************************************************************
+ 397  0052              System_Initial:
+ 398  0052              	;-----------------------------------------------------------
+ 399  0052              	; Debug
+ 400  0052              	;-----------------------------------------------------------
+ 401  0052              
+ 402  0052              
+ 403  0052              	;-----------------------------------------------------------
+ 404  0052              	; Modify Pop Noise
+ 405  0052              	; 癳い丁非 code  DA
+ 406  0052              	;-----------------------------------------------------------
+ 407  0052  0001        		clr wdt
+ 408  0053  0709        		mov		a,WDTS
+ 409  0054  00E1        		mov		FIFO_TEMP,a
+ 410  0055              
+ 411  0055  0F57        		mov		a,01010111b
+文件：MAIN.ASM     盛群编译器版本 2.86 页次8
+
+ 412  0056  0089        		mov		WDTS,a
+ 413  0057              
+ 414  0057  1F2D        		clr		[02DH]
+ 415  0058              
+ 416  0058              		
+ 417  0058  0F80        		mov		a,80H
+ 418  0059  00AE        		mov		[02EH],a
+ 419  005A  0000        		nop
+ 420  005B  0000        		nop
+ 421  005C  31AF        		set		[02FH].3
+ 422  005D  0000        		nop
+ 423  005E  0000        		nop
+ 424  005F  35AF        		clr		[02FH].3
+ 425  0060  0000        		nop
+ 426  0061  0000        		nop
+ 427  0062              
+ 428  0062  0761        		mov		a,FIFO_TEMP
+ 429  0063  0089        		mov		WDTS,a
+ 430  0064              	;-----------------------------------------------------------
+ 431  0064              	; ˙艼单筿甧ど丁
+ 432  0064              	; 代刚莱赣р WaitBias 砞 0 , 獶代刚莱赣р WaitBais 砞 1
+ 433  0064              	; Wait Bais and ROUT LOUT Capacity rise about 1.98ms
+ 434  0064              	; delay time = 255*255*30*3(sdz,jmp) cycle * 0.3333us/cycle = 1.98 ms
+ 435  0064              	;-----------------------------------------------------------
+ 436  0064              	IF	WaitBias
+ 437  0064              		clr		pac
+ 438  0064              
+ 439  0064              		clr		FIFO_OUT1
+ 440  0064              		clr		FIFO_OUT2
+ 441  0064              		clr		FIFO_OUT3
+ 442  0064              		mov		a,9		
+ 443  0064              		mov		FIFO_OUT3,a
+ 444  0064              		clr		pa
+ 445  0064              
+ 446  0064              
+ 447  0064              
+ 448  0064              	System_Initial_Loop:
+ 449  0064              		clr wdt
+ 450  0064              		sdz		FIFO_OUT1
+ 451  0064              		jmp		System_Initial_Loop
+ 452  0064              		sdz		FIFO_OUT2
+ 453  0064              		jmp		System_Initial_Loop		
+ 454  0064              		sdz		FIFO_OUT3
+ 455  0064              		jmp		System_Initial_Loop		
+ 456  0064              		nop
+ 457  0064              		set		pa
+ 458  0064              		clr wdt
+ 459  0064              	ENDIF
+ 460  0064              	;-----------------------------------------------------------
+ 461  0064              	; Codec Limit
+ 462  0064              	;-----------------------------------------------------------
+ 463  0064  1F2D        		clr		[02DH]
+ 464  0065  1FAE        		set		[02EH]
+ 465  0066              
+ 466  0066              	;-----------------------------------------------------------
+ 467  0066              	; ram_initial : clear the ram of bank 0
+ 468  0066              	;-----------------------------------------------------------
+ 469  0066              	ram_initial:	;clear RAM (040H--0FFH)
+ 470  0066  0F40        		MOV		A,040H
+ 471  0067  0081        		MOV		MP0,A
+文件：MAIN.ASM     盛群编译器版本 2.86 页次9
+
+ 472  0068  0FC0        		MOV		A,192
+ 473  0069              	ram_initial_next_addr:
+ 474  0069  0001        		clr wdt	
+ 475  006A  1F00        		CLR		R0
+ 476  006B  1481        		INC		MP0
+ 477  006C  1785        		SDZ		acc
+ 478  006D  2869        		JMP		ram_initial_next_addr
+ 479  006E              		
+ 480  006E  374E        		CLR		bFlag_RD_HTable
+ 481  006F              	;-----------------------------------------------------------
+ 482  006F              	; timer_initial : do timer initial
+ 483  006F              	;-----------------------------------------------------------
+ 484  006F              	timer_initial:
+ 485  006F              ;;		MOV 		A,80H		; 砞﹚ low  high 牟祇砞ず场璸家Α
+ 486  006F              ;;		MOV		TMR0C,A		;
+ 487  006F              ;;		MOV		A,00H		;
+ 488  006F              ;;		MOV		TMR0L,A		
+ 489  006F              ;;		MOV		A,000H		
+ 490  006F              ;;		MOV		TMR0H,A		
+ 491  006F              
+ 492  006F  0F80        		mov		a,80H
+ 493  0070  0091        		mov		TMR1C,a
+ 494  0071  0F00        		mov		a,00H
+ 495  0072  0090        		mov		TMR1L,a
+ 496  0073  008F        		mov		TMR1H,a
+ 497  0074              
+ 498  0074              	;-----------------------------------------------------------
+ 499  0074              	; config_io_port :
+ 500  0074              	;-----------------------------------------------------------
+ 501  0074              ;;		clr		PA
+ 502  0074              	;-----------------------------------------------------------
+ 503  0074              	; config_io_port :(USB Audio)
+ 504  0074              	;-----------------------------------------------------------
+ 505  0074  3192        		SET		P_LED
+ 506  0075  3593        		CLR		P_LEDC
+ 507  0076  3092        		SET		P_SDA
+ 508  0077  3493        		CLR		P_SDAC
+ 509  0078  3012        		SET		P_SCL
+ 510  0079  3413        		CLR		P_SCLC
+ 511  007A              	
+ 512  007A              	;;Initial QN8072 Reg0~4	
+ 513  007A  0F51        		MOV		A,51H
+ 514  007B  00C0        		MOV		mQNReg[0],A
+ 515  007C  0F18        		MOV		A,18H
+ 516  007D  00C1        		MOV		mQNReg[1],A
+ 517  007E  0FB9        		MOV		A,0B9H
+ 518  007F  00C2        		MOV		mQNReg[2],A
+ 519  0080  0F50        		MOV		A,50H
+ 520  0081  00C3        		MOV		mQNReg[3],A
+ 521  0082  0F58        		MOV		A,58H
+ 522  0083  00C4        		MOV		mQNReg[4],A
+ 523  0084              		
+ 524  0084              		
+ 525  0084              ;;		IF 		UseMediaKey
+ 526  0084              ;;			kmov		pac,Key_Defined
+ 527  0084              ;;		ENDIF
+ 528  0084              ;;		IFE		UseMediaKey
+ 529  0084              ;;			kmov		pac,00000000b
+ 530  0084              ;;		ENDIF
+ 531  0084              		
+文件：MAIN.ASM     盛群编译器版本 2.86 页次10
+
+ 532  0084              ;;		clr		pb
+ 533  0084              ;;		clr		pbc		;change to USB Len On
+ 534  0084              ;;;		clr		pc		;for volume control
+ 535  0084              ;;		set		pcc
+ 536  0084              ;;		clr		pd
+ 537  0084              ;;		clr		pdc
+ 538  0084              	;-----------------------------------------------------------
+ 539  0084              	; config_usb_speaker_register :
+ 540  0084              	;-----------------------------------------------------------
+ 541  0084  1F1C        		clr		USVC		;mute & 0db
+ 542  0085  1F1D        		clr		USF
+ 543  0086              	;-----------------------------------------------------------
+ 544  0086              	; reset variable :
+ 545  0086              	;-----------------------------------------------------------
+ 546  0086  35EB        		clr		bFlag_Audio_Mute
+ 547  0087  1F6F        		clr		VolumeH_Save
+ 548  0088  0FFC        		mov		a,Cur_Volume
+ 549  0089  00F0        		mov		VolumeL_Save,a
+ 550  008A              	;-----------------------------------------------------------
+ 551  008A              	; config_usb : do usb config
+ 552  008A              	;-----------------------------------------------------------
+ 553  008A              	config_usb:
+ 554  008A  1F0B        		CLR		INTC0
+ 555  008B  308B        		SET		INTC0.@INTC0_EEI		;enable USB
+ 556  008C  300B        		SET		INTC0.@INTC0_EMI		;Global interrupt
+ 557  008D              
+ 558  008D  3226        		set		MISC.@MISC_ISOEN
+ 559  008E  1F24        		clr		STALL
+ 560  008F  3622        		clr		UCC.@UCC_SUSP2
+ 561  0090              		
+ 562  0090              		;SYSCLK
+ 563  0090              		;set			UCC.6	//set to 6 MHz
+ 564  0090              
+ 565  0090  31A2        		set 		UCC.@UCC_USBCKEN
+ 566  0091  0000        		nop
+ 567  0092  3220        		set		USC.@USC_V33C		;//pc 秨﹍癳 command 筁ㄓ
+ 568  0093  0001        		clr wdt
+ 569  0094              			;modify for Remote Wakeup
+ 570  0094  366B        		clr     bRmtWakeup
+ 571  0095  36EB            		clr     b_wakeup
+ 572  0096  37EB        		clr     b_forusbRst
+ 573  0097              		;clr     	AWR.@AWR_WKEN
+ 574  0097  0003        		RET
+ 575  0098              		
+ 576  0098              ;***************************************************************
+ 577  0098              ;		Timer_0_ISR
+ 578  0098              ;		1.Timer time = 21.2 ms
+ 579  0098              ;		2.Do this procedure is 3.6ms
+ 580  0098              ;***************************************************************
+ 581  0098              Timer_0_ISR:	
+ 582  0098              ;;		clr		TMR0C.4
+ 583  0098              ;;		MOV		isr_tmr0_acc,A		;save ACC
+ 584  0098              ;;		MOV		A,STATUS
+ 585  0098              ;;		MOV		isr_tmr0_status,A	;save status
+ 586  0098              ;;		MOV		A,MP1
+ 587  0098              ;;		MOV		isr_tmr0_mp1,A		;save mp1
+ 588  0098              ;;		MOV		A,MP0
+ 589  0098              ;;		MOV		isr_tmr0_mp0,A		;save mp0
+ 590  0098              ;;		MOV		A,TBLP
+ 591  0098              ;;		MOV		isr_tmr0_tblp,A		;save TBLP
+文件：MAIN.ASM     盛群编译器版本 2.86 页次11
+
+ 592  0098              
+ 593  0098              Timer_0_My_Function:
+ 594  0098              	;-----------------------------------------------------------
+ 595  0098              	; Here to add your another code !!
+ 596  0098              	;-----------------------------------------------------------
+ 597  0098              ;;		NOP
+ 598  0098              ;;		clr wdt
+ 599  0098              				
+ 600  0098              Timer_0_ISR_END:		
+ 601  0098              ;;		MOV		A,isr_tmr0_tblp		;restore TBLP
+ 602  0098              ;;		MOV		TBLP,A
+ 603  0098              ;;		MOV		A,isr_tmr0_mp0		;restore MP0
+ 604  0098              ;;		MOV		MP0,A
+ 605  0098              ;;		MOV		A,isr_tmr0_mp1		;restore MP1
+ 606  0098              ;;		MOV		MP1,A
+ 607  0098              ;;		MOV		A,isr_tmr0_status	;restore STATUS
+ 608  0098              ;;		MOV		STATUS,A
+ 609  0098              ;;		MOV		A,isr_tmr0_acc		;restore ACC
+ 610  0098              ;;		SET		TMR0C.4			;start timer0
+ 611  0098              
+ 612  0098  0004        		RETI
+ 613  0099              
+ 614  0099              ;***************************************************************
+ 615  0099              ;		Timer_1_ISR
+ 616  0099              ;		1.Timer time = 21.2 ms
+ 617  0099              ;		2.Do this procedure is 3.6ms
+ 618  0099              ;***************************************************************
+ 619  0099              Timer_1_ISR:
+ 620  0099  3611        		CLR		TMR1C.4
+ 621  009A              
+ 622  009A              
+ 623  009A              ;;		MOV		isr_tmr1_acc,A		;save ACC
+ 624  009A              ;;		MOV		A,STATUS
+ 625  009A              ;;		MOV		isr_tmr1_status,A	;save status
+ 626  009A              ;;		MOV		A,MP1
+ 627  009A              ;;		MOV		isr_tmr1_mp1,A		;save mp1
+ 628  009A              ;;		MOV		A,MP0
+ 629  009A              ;;		MOV		isr_tmr1_mp0,A		;save mp0
+ 630  009A              ;;		MOV		A,TBLP
+ 631  009A              ;;		MOV		isr_tmr1_tblp,A		;save TBLP
+ 632  009A              ;;		clr wdt
+ 633  009A              		;IF	UseMediaKey
+ 634  009A              		;call		Key_Debounced
+ 635  009A              		;ENDIF
+ 636  009A              		;call		Run_Volume_Step
+ 637  009A  3072        		set bFlagTMR1
+ 638  009B              
+ 639  009B              ;;		MOV		A,isr_tmr1_tblp		;restore TBLP
+ 640  009B              ;;		MOV		TBLP,A
+ 641  009B              ;;		MOV		A,isr_tmr1_mp0		;restore MP0
+ 642  009B              ;;		MOV		MP0,A
+ 643  009B              ;;		MOV		A,isr_tmr1_mp1		;restore MP1
+ 644  009B              ;;		MOV		MP1,A
+ 645  009B              ;;		MOV		A,isr_tmr1_status	;restore STATUS
+ 646  009B              ;;		MOV		STATUS,A
+ 647  009B              ;;		MOV		A,isr_tmr1_acc		;restore ACC
+ 648  009B              
+ 649  009B              Timer_1_ISR_End:
+ 650  009B  3211        		SET		TMR1C.4
+ 651  009C  0004        		RETI
+文件：MAIN.ASM     盛群编译器版本 2.86 页次12
+
+ 652  009D              
+ 653  009D              ;***************************************************************
+ 654  009D              ;		USB_ISR : USB Interrupt Routine
+ 655  009D              ;		1.Back up every status register
+ 656  009D              ;		2.check which endpoint is interrupt
+ 657  009D              ;***************************************************************
+ 658  009D              USB_ISR:
+ 659  009D              		;CLR		INTC0.@INTC0_EEI	;disable USB interrupt
+ 660  009D              		;SET		INTC0.@INTC0_EMI
+ 661  009D              
+ 662  009D  00CF        		MOV		isr_usb_acc,A		;save ACC
+ 663  009E  070A        		MOV		A,STATUS
+ 664  009F  00D0        		MOV		isr_usb_status,A	;save status
+ 665  00A0  0703        		MOV		A,MP1
+ 666  00A1  00D1        		MOV		isr_usb_mp1,A		;save mp1
+ 667  00A2  0701        		MOV		A,MP0
+ 668  00A3  00D2        		MOV		isr_usb_mp0,A		;save mp0
+ 669  00A4  0707        		MOV		A,TBLP
+ 670  00A5  00D3        		MOV		isr_usb_tblp,A		;save TBLP
+ 671  00A6              		
+ 672  00A6              		;modify 2007-07-03
+ 673  00A6  3D20              	SZ  	USC.@USC_URST
+ 674  00A7  33EB              	SET  	b_forusbRst        
+ 675  00A8  3520              	CLR  	USC.@USC_URST
+ 676  00A9              		
+ 677  00A9              		;modify 2007-06-27
+ 678  00A9  3DA0        		SZ   		USC.@USC_RESUME
+ 679  00AA  336B              		set  		b_forceresumeWakeup;;JMP  RemoteWakeup
+ 680  00AB              		
+ 681  00AB  0001        		clr wdt
+ 682  00AC              		;;Check Which FIFO is interrupt
+ 683  00AC  28B7        		JMP		Check_Access_FIFO		
+ 684  00AD              
+ 685  00AD              
+ 686  00AD              
+ 687  00AD              USB_ISR_END:
+ 688  00AD  0753        		MOV		A,isr_usb_tblp		;restore TBLP
+ 689  00AE  0087        		MOV		TBLP,A
+ 690  00AF  0752        		MOV		A,isr_usb_mp0		;restore MP0
+ 691  00B0  0081        		MOV		MP0,A
+ 692  00B1  0751        		MOV		A,isr_usb_mp1		;restore MP1
+ 693  00B2  0083        		MOV		MP1,A
+ 694  00B3  0750        		MOV		A,isr_usb_status	;restore STATUS
+ 695  00B4  008A        		MOV		STATUS,A
+ 696  00B5  074F        		MOV		A,isr_usb_acc		;restore ACC
+ 697  00B6              
+ 698  00B6              
+ 699  00B6              		;CLR		INTC0.@INTC0_EMI
+ 700  00B6              		;SET		INTC0.@INTC0_EEI
+ 701  00B6              
+ 702  00B6              
+ 703  00B6  0004        		RETI
+ 704  00B7              
+ 705  00B7              ;***************************************************************
+ 706  00B7              ;		USB_EPX_ISR
+ 707  00B7              ;		ぇ玡ㄏノ USR@EP0IF EQU	[01BH].0 穦盎代ぃ
+ 708  00B7              ;		эΘ   USB_STATUS_CONTROL.@EP0IF
+ 709  00B7              ;***************************************************************
+ 710  00B7              Check_Access_FIFO:
+ 711  00B7  0001        		clr wdt
+文件：MAIN.ASM     盛群编译器版本 2.86 页次13
+
+ 712  00B8  3C21        		SZ		USR.@USR_EP0F
+ 713  00B9  28BF        		JMP		USB_EP0_ISR
+ 714  00BA  3CA1        		SZ		USR.@USR_EP1F
+ 715  00BB  2910        		JMP		USB_EP1_ISR
+ 716  00BC  3D21        		SZ		USR.@USR_EP2F
+ 717  00BD  2919        		JMP		USB_EP2_ISR
+ 718  00BE  28AD        		JMP		USB_ISR_END
+ 719  00BF              
+ 720  00BF              ;-----------------------------------------------------
+ 721  00BF              ;EPNPOINT 0
+ 722  00BF              ;-----------------------------------------------------
+ 723  00BF              USB_EP0_ISR:
+ 724  00BF              		;CLR		USR.@USR_EP0F
+ 725  00BF              
+ 726  00BF              ;;case1
+ 727  00BF  3EA6        		SZ		MISC.@MISC_SCMD			;check setup token      
+ 728  00C0  28CB        		JMP		USB_EP0_SETUP_TOKEN                                     
+ 729  00C1                              
+ 730  00C1  3FA6        		SZ		MISC.@MISC_LEN0			;check out ack token    
+ 731  00C2  28D1        		JMP		USB_EP0_OUT_ACK_TOKEN                                   
+ 732  00C3              
+ 733  00C3  2000     E  		CALL		FIFO0_RD_CHECK                                          
+ 734  00C4  3E4E        		SZ		bFlag_FIFO_Ready                                        
+ 735  00C5  28D5        		JMP		USB_EP0_OUT_TOKEN 
+ 736  00C6              		;clr		MISC.@MISC_REQ
+ 737  00C6              
+ 738  00C6  2000     E  		CALL		FIFO0_WR_CHECK                                          
+ 739  00C7  3E4E        		SZ		bFlag_FIFO_Ready                                        
+ 740  00C8  28CD        		JMP		USB_EP0_IN_TOKEN		;else is in token       
+ 741  00C9              		;clr		MISC.@MISC_REQ
+ 742  00C9              
+ 743  00C9              		;modify 2007-06-20
+ 744  00C9  3421        		CLR		USR.@USR_EP0F	;Fix OHCI Volume
+ 745  00CA              				
+ 746  00CA  290F          		JMP		USB_EP0_ISR_END   
+ 747  00CB              
+ 748  00CB              
+ 749  00CB              ;;case2
+ 750  00CB              ;;		SZ		MISC.@MISC_SCMD			;check setup token      
+ 751  00CB              ;;		JMP		USB_EP0_SETUP_TOKEN                                     
+ 752  00CB              ;;                
+ 753  00CB              ;;		SZ		MISC.@MISC_LEN0			;check out ack token    
+ 754  00CB              ;;		JMP		USB_EP0_OUT_ACK_TOKEN                                   
+ 755  00CB              ;;
+ 756  00CB              ;;		CALL		FIFO0_RD_CHECK                                          
+ 757  00CB              ;;		SZ		bFlag_FIFO_Ready                                        
+ 758  00CB              ;;		JMP		USB_EP0_OUT_TOKEN 
+ 759  00CB              ;;		;clr		MISC.@MISC_REQ
+ 760  00CB              ;;
+ 761  00CB              ;;		CALL		FIFO0_WR_CHECK                                          
+ 762  00CB              ;;		SZ		bFlag_FIFO_Ready                                        
+ 763  00CB              ;;		JMP		USB_EP0_IN_TOKEN		;else is in token       
+ 764  00CB              ;;		;clr		MISC.@MISC_REQ
+ 765  00CB              ;;
+ 766  00CB              ;;
+ 767  00CB              ;;  		JMP		USB_EP0_ISR_END   
+ 768  00CB              
+ 769  00CB              
+ 770  00CB              ;;case3
+ 771  00CB              ;;		call		FIFO0_RD_CHECK
+文件：MAIN.ASM     盛群编译器版本 2.86 页次14
+
+ 772  00CB              ;;		sz		bFlag_FIFO_Ready
+ 773  00CB              ;;		jmp		Have_Data_Out
+ 774  00CB              ;;		
+ 775  00CB              ;;		call		FIFO0_WR_CHECK
+ 776  00CB              ;;		sz		bFlag_FIFO_Ready
+ 777  00CB              ;;		jmp		USB_EP0_IN_TOKEN
+ 778  00CB              ;;		
+ 779  00CB              ;;		jmp		USB_EP0_ISR_END
+ 780  00CB              ;;
+ 781  00CB              ;;Have_Data_Out:
+ 782  00CB              ;;		sz		MISC.@MISC_SCMD
+ 783  00CB              ;;		jmp		USB_EP0_SETUP_TOKEN
+ 784  00CB              ;;		sz		MISC.@MISC_LEN0
+ 785  00CB              ;;		jmp		USB_EP0_OUT_ACK_TOKEN
+ 786  00CB              ;;		
+ 787  00CB              ;;		jmp		USB_EP0_OUT_TOKEN
+ 788  00CB              
+ 789  00CB              
+ 790  00CB              
+ 791  00CB              
+ 792  00CB              
+ 793  00CB              USB_EP0_SETUP_TOKEN:					;PARSE SETUP TOKEN
+ 794  00CB  0001        		clr wdt
+ 795  00CC  291C        		JMP		StageOne
+ 796  00CD              
+ 797  00CD              USB_EP0_IN_TOKEN:
+ 798  00CD  0001        		clr wdt
+ 799  00CE              		;modify 2007-06-20
+ 800  00CE  3421        		CLR		USR.@USR_EP0F	;Fix OHCI Volume
+ 801  00CF  2000     E  		CALL		control_read
+ 802  00D0  290F        		JMP		USB_EP0_ISR_END
+ 803  00D1              
+ 804  00D1              USB_EP0_OUT_ACK_TOKEN:
+ 805  00D1              		;modify 2007-06-20
+ 806  00D1  3421        		CLR		USR.@USR_EP0F	;Fix OHCI Volume
+ 807  00D2  0001        		clr wdt
+ 808  00D3  37A6        		clr		MISC.@MISC_LEN0
+ 809  00D4  290F        		JMP		USB_EP0_ISR_END
+ 810  00D5              		
+ 811  00D5              ;--------------------------------------------------------------
+ 812  00D5              ; Parser nCmdIndex1
+ 813  00D5              ;--------------------------------------------------------------
+ 814  00D5              USB_EP0_OUT_TOKEN:
+ 815  00D5              		;modify 2007-06-20
+ 816  00D5  3421        		CLR		USR.@USR_EP0F	;Fix OHCI Volume
+ 817  00D6  0001        		clr wdt
+ 818  00D7  1F05        		clr		acc
+ 819  00D8  0471        		xor		a,nCmdIndex1
+ 820  00D9  3D0A        		sz		z
+ 821  00DA  290F        		jmp		USB_EP0_ISR_END
+ 822  00DB              		
+ 823  00DB              USB_EP0_OUT_TOKEN_Loop:
+ 824  00DB  0001        		clr wdt
+ 825  00DC  2000     E  		CALL		Check_Real_Cmd
+ 826  00DD  3DCE        		sz		bFlag_Real_Cmd
+ 827  00DE  28F3        		jmp		USB_EP0_OUT_TOKEN_End
+ 828  00DF              
+ 829  00DF  0001        		clr wdt
+ 830  00E0  2000     E  		CALL		FIFO0_RD_CHECK
+ 831  00E1  3A4E        		SNZ		bFlag_FIFO_Ready
+文件：MAIN.ASM     盛群编译器版本 2.86 页次15
+
+ 832  00E2  28DB        		JMP		USB_EP0_OUT_TOKEN_Loop
+ 833  00E3              		
+ 834  00E3  2000     E  		CALL		READ_FIFO0
+ 835  00E4  0000        		NOP
+ 836  00E5  2000     E  		CALL		Send_Hand_Shake
+ 837  00E6              
+ 838  00E6              		;decode command
+ 839  00E6              		;//parse Cmd , 21 = SetReport Out Data
+ 840  00E6  0F21        		mov		a,21H
+ 841  00E7  0471        		xor		a,nCmdIndex1
+ 842  00E8  3D0A        		sz		z
+ 843  00E9  29B1        		jmp		ProcessOutData
+ 844  00EA              
+ 845  00EA              		;//parse Cmd , 18 = Mute Control
+ 846  00EA  0F18        		mov		a,18H
+ 847  00EB  0471        		xor		a,nCmdIndex1
+ 848  00EC  3D0A        		sz		z
+ 849  00ED  28F5        		jmp		Implement_Mute
+ 850  00EE              
+ 851  00EE              		;//parse Cmd , 28 = Volume Control
+ 852  00EE  0F28        		mov		a,28H
+ 853  00EF  0471        		xor		a,nCmdIndex1
+ 854  00F0  3D0A        		sz		z
+ 855  00F1  2909        		jmp		Implement_Volume
+ 856  00F2              
+ 857  00F2              		;//unknow command
+ 858  00F2  28F3        		jmp		USB_EP0_OUT_TOKEN_End
+ 859  00F3              		
+ 860  00F3              USB_EP0_OUT_TOKEN_End:
+ 861  00F3  1F71        		clr		nCmdIndex1
+ 862  00F4  290F        		JMP		USB_EP0_ISR_END
+ 863  00F5              
+ 864  00F5              
+ 865  00F5              Implement_Mute:
+ 866  00F5  0001        		clr wdt
+ 867  00F6  3C59        		sz		FIFO_out1.0
+ 868  00F7  379C        		clr		USVC.7			;mute
+ 869  00F8  3859        		snz		FIFO_out1.0
+ 870  00F9  339C        		set		USVC.7			;unmute
+ 871  00FA              
+ 872  00FA  3C59        		sz		FIFO_out1.0
+ 873  00FB  31EB        		set		bFlag_Audio_Mute	;mute
+ 874  00FC  3859        		snz		FIFO_out1.0
+ 875  00FD  35EB        		clr		bFlag_Audio_Mute	;unmute
+ 876  00FE              
+ 877  00FE  3C59        		sz		FIFO_out1.0
+ 878  00FF  3094        		set		MUTE_LED_ON	;mute
+ 879  0100  3859        		snz		FIFO_out1.0
+ 880  0101  3494        		clr		MUTE_LED_ON	;unmute
+ 881  0102              
+ 882  0102              
+ 883  0102  39EB        		snz		bFlag_Audio_Mute
+ 884  0103  2907        		jmp		Implement_Mute_1
+ 885  0104              		
+ 886  0104  0FC8        		mov		a,Min_Volume
+ 887  0105  009C        		mov		USVC,a
+ 888  0106              		
+ 889  0106  379C        		clr		USVC.7
+ 890  0107              		
+ 891  0107              		
+文件：MAIN.ASM     盛群编译器版本 2.86 页次16
+
+ 892  0107              Implement_Mute_1:
+ 893  0107  0001        		clr wdt
+ 894  0108              		;//kmov		Mute_Save,FIFO_out1
+ 895  0108  28F3        		jmp		USB_EP0_OUT_TOKEN_End
+ 896  0109              		
+ 897  0109              
+ 898  0109              Implement_Volume:
+ 899  0109  0001        		clr wdt
+ 900  010A              		kmov		VolumeH_Save,FIFO_out1
+ 901  010C              		kmov		VolumeL_Save,FIFO_out2
+ 902  010E              Implement_Volume_End:
+ 903  010E  28F3        		jmp		USB_EP0_OUT_TOKEN_End		
+ 904  010F              
+ 905  010F              USB_EP0_ISR_END:
+ 906  010F              		;//CLR		USR.@USR_EP0F
+ 907  010F  28AD        		JMP		USB_ISR_END
+ 908  0110              ;-----------------------------------------------------
+ 909  0110              ;EPNPOINT 1 Interrupt
+ 910  0110              ;-----------------------------------------------------
+ 911  0110              USB_EP1_ISR:
+ 912  0110  34A1        		CLR		USR.@USR_EP1F
+ 913  0111  384E        		SNZ		bIniFMOK
+ 914  0112  2918        		JMP		USB_EP1_ISR_END		;;FM Not initial OK,exit
+ 915  0113              		
+ 916  0113              		;check the data is in fifo ?
+ 917  0113  2000     E  		CALL		FIFO1_RD_CHECK
+ 918  0114  3A4E        		SNZ		bFlag_FIFO_Ready
+ 919  0115  2918        		JMP		USB_EP1_ISR_END
+ 920  0116  2000     E  		CALL		Read_FIFO1
+ 921  0117              
+ 922  0117              
+ 923  0117              		;;CALL		FIFO1_WR_CHECK
+ 924  0117              		;;SNZ		bFlag_FIFO_Ready
+ 925  0117              		;;JMP		USB_EP1_ISR_END
+ 926  0117              		;;MOV		A,00H
+ 927  0117              		;;MOV		FIFO_OUT1,A
+ 928  0117              		;;MOV		A,01H
+ 929  0117              		;;MOV		FIFO_SendLen,A
+ 930  0117              		;;CALL		WRITE_FIFO1	
+ 931  0117              		
+ 932  0117  22DE        		CALL		QN8027	
+ 933  0118              
+ 934  0118              
+ 935  0118              
+ 936  0118              USB_EP1_ISR_END:
+ 937  0118  28AD        		JMP		USB_ISR_END
+ 938  0119              ;-----------------------------------------------------
+ 939  0119              ;EPNPOINT 2 Interrupt
+ 940  0119              ;-----------------------------------------------------
+ 941  0119              USB_EP2_ISR:
+ 942  0119  3521        		CLR		USR.@USR_EP2F
+ 943  011A              		;;SET		ET0I		;enable timer0
+ 944  011A              		;;SET		TMR0C.4		;璓  秨﹍璸计
+ 945  011A              
+ 946  011A              
+ 947  011A              
+ 948  011A  3626        		clr		MISC.@MISC_ISOEN		;闽超 ISO い耞
+ 949  011B              
+ 950  011B              
+ 951  011B              USB_EP2_ISR_END:				
+文件：MAIN.ASM     盛群编译器版本 2.86 页次17
+
+ 952  011B  28AD        		JMP		USB_ISR_END
+ 953  011C              
+ 954  011C              
+ 955  011C              ;***************************************************************
+ 956  011C              ;		Stage  One  ....  Test bmRequestType
+ 957  011C              ;		CALL   FIFO_RD_CHECK  will return bFlag_FIFO_Ready?(1=Ready,0=not ready)
+ 958  011C              ;***************************************************************
+ 959  011C              StageOne:
+ 960  011C  0001        		clr wdt
+ 961  011D  2000     E  		CALL		FIFO0_RD_CHECK
+ 962  011E  3A4E        		SNZ		bFlag_FIFO_Ready
+ 963  011F  2948        		JMP		StageOne_End		; the EP0 FIFO RD is not ready ⊿Τdata秈ㄓ		
+ 964  0120  2000     E  		CALL		Read_FIFO0		; Read EP0 Command
+ 965  0121  36A6        		clr		MISC.@MISC_SCMD
+ 966  0122  37A6        		clr		MISC.@MISC_LEN0
+ 967  0123              		
+ 968  0123              		;modify 2007-06-20
+ 969  0123  3421        		CLR		USR.@USR_EP0F	;Fix OHCI Volume
+ 970  0124              		
+ 971  0124  0001        		clr wdt
+ 972  0125  0000        		nop
+ 973  0126              
+ 974  0126  0759        		MOV		A,FIFO_TYPE
+ 975  0127  0C00        		XOR		A,00H
+ 976  0128  3D0A        		SZ		Z			;FIFO_TYPE=00H
+ 977  0129  294A        		JMP		Request_Type00
+ 978  012A              
+ 979  012A  0759        		MOV		A,FIFO_TYPE
+ 980  012B  0C01        		XOR		A,01H
+ 981  012C  3D0A        		SZ		Z			;FIFO_TYPE=01H
+ 982  012D  2960        		JMP		Request_Type01
+ 983  012E              
+ 984  012E  0759        		MOV		A,FIFO_TYPE
+ 985  012F  0C02        		XOR		A,02H
+ 986  0130  3D0A        		SZ		Z			;FIFO_TYPE=02H
+ 987  0131  2966        		JMP		Request_Type02
+ 988  0132              
+ 989  0132  0759        		MOV		A,FIFO_TYPE
+ 990  0133  0C80        		XOR		A,80H
+ 991  0134  3D0A        		SZ		Z			;FIFO_TYPE=80H
+ 992  0135  2970        		JMP		Request_Type80
+ 993  0136              
+ 994  0136  0759        		MOV		A,FIFO_TYPE
+ 995  0137  0C81        		XOR		A,81H
+ 996  0138  3D0A        		SZ		Z			;FIFO_TYPE=81H
+ 997  0139  2980        		JMP		Request_Type81
+ 998  013A              
+ 999  013A  0759        		MOV		A,FIFO_TYPE
+1000  013B  0C82        		XOR		A,82H
+1001  013C  3D0A        		SZ		Z			;FIFO_TYPE=82H
+1002  013D  2990        		JMP		Request_Type82
+1003  013E              
+1004  013E              ;===============================================================
+1005  013E              ;HID & Audio
+1006  013E              ;===============================================================
+1007  013E  0759        		MOV		A,FIFO_TYPE
+1008  013F  0C21        		XOR		A,21H
+1009  0140  3D0A        		SZ		Z
+1010  0141  2996        		JMP		Request_Type21
+1011  0142              
+文件：MAIN.ASM     盛群编译器版本 2.86 页次18
+
+1012  0142              ;Volume Control
+1013  0142  0001        		clr wdt
+1014  0143  0759        		MOV		A,FIFO_TYPE
+1015  0144  0CA1        		XOR		A,0A1H
+1016  0145  3D0A        		SZ		Z
+1017  0146  29A0        		JMP		Request_TypeA1
+1018  0147              
+1019  0147  2800     E  		JMP		SendStall0
+1020  0148              
+1021  0148              
+1022  0148              StageOne_End:
+1023  0148              		;modify 2007-06-20
+1024  0148  3421        		CLR		USR.@USR_EP0F	;Fix OHCI Volume
+1025  0149  0003        		RET
+1026  014A              
+1027  014A              
+1028  014A              ;***************************************************************
+1029  014A              ;		USB	 Stage2 
+1030  014A              ;		
+1031  014A              ;***************************************************************
+1032  014A              ;Device to Host with device as recipient
+1033  014A              ;===============================================================
+1034  014A              ;Request_Type00
+1035  014A              ;bRequest 	Function
+1036  014A              ; 1			Clear Feature
+1037  014A              ; 3			Set Feature
+1038  014A              ; 5			Set Address
+1039  014A              ; 7			not support
+1040  014A              ; 9			Set Configuration
+1041  014A              ;===============================================================
+1042  014A              ;===============================================================
+1043  014A              Request_TYPE00:
+1044  014A              ;Set the device address to a non-zero value
+1045  014A              ;Set address
+1046  014A  0001        		clr wdt
+1047  014B  075A        		MOV		A,FIFO_REQUEST
+1048  014C  0C05        		XOR		A,set_address
+1049  014D  3D0A        		SZ		Z
+1050  014E  2800     E  		JMP		SetAddress
+1051  014F              
+1052  014F              ;Set Configuration
+1053  014F  075A        		MOV		A,FIFO_REQUEST
+1054  0150  0C09        		XOR		A,set_configuration
+1055  0151  390A        		SNZ		Z
+1056  0152  2956        		JMP		Request_TYPE00_NEXT
+1057  0153              
+1058  0153  318B        		SET		ET1I
+1059  0154  3211        		SET		TMR1C.4
+1060  0155              
+1061  0155  2800     E  		JMP		SetConfiguration
+1062  0156              
+1063  0156              ;Clear Feature
+1064  0156              ;The HT82A822R return ACK without ERROR
+1065  0156              Request_TYPE00_NEXT:
+1066  0156  075A        		MOV		A,FIFO_REQUEST
+1067  0157  0C01        		XOR		A,clear_feature
+1068  0158  3D0A        		SZ		Z
+1069  0159  2800     E  		JMP		ClearFeature
+1070  015A              
+1071  015A              ;Set Feature
+文件：MAIN.ASM     盛群编译器版本 2.86 页次19
+
+1072  015A  0001        		clr wdt
+1073  015B  075A        		MOV		A,FIFO_REQUEST
+1074  015C  0C03        		XOR		A,set_feature
+1075  015D  3D0A        		SZ		Z
+1076  015E  2800     E  		JMP		SetFeature
+1077  015F              
+1078  015F  2800     E  		JMP		SendStall0
+1079  0160              ;===============================================================
+1080  0160              Request_Type01:
+1081  0160  0001        		clr wdt
+1082  0161  075A        		MOV		A,FIFO_REQUEST
+1083  0162  0C0B        		XOR		A,set_interface
+1084  0163  3D0A        		SZ		Z
+1085  0164  2800     E  		JMP		SetInterface
+1086  0165              
+1087  0165  2800     E  		JMP		SendStall0		
+1088  0166              ;===============================================================
+1089  0166              Request_Type02:
+1090  0166  0001        		clr wdt
+1091  0167  075A        		MOV		A,FIFO_REQUEST
+1092  0168  0C01        		XOR		A,clear_feature
+1093  0169  3D0A        		SZ		Z
+1094  016A  2800     E  		JMP		ClearFeature_Endpoint
+1095  016B              
+1096  016B  075A        		MOV		A,FIFO_REQUEST
+1097  016C  0C03        		XOR		A,set_feature
+1098  016D  3D0A        		SZ		Z
+1099  016E  2800     E  		JMP		SetFeature_Endpoint
+1100  016F              
+1101  016F              		
+1102  016F              
+1103  016F  2800     E  		JMP		SendStall0		
+1104  0170              	
+1105  0170              		
+1106  0170              
+1107  0170              ;===============================================================
+1108  0170              Request_TYPE80:
+1109  0170              ;Get Status
+1110  0170              ;Get Descriptor		80 06
+1111  0170  0001        		clr wdt
+1112  0171  075A        		MOV		A,FIFO_REQUEST
+1113  0172  0C06        		XOR		A,get_descriptor
+1114  0173  3D0A        		SZ		Z
+1115  0174  2800     E  		JMP		GetDescriptor
+1116  0175              
+1117  0175              ;Get Configuration		80 08
+1118  0175  0001        		clr wdt
+1119  0176  075A        		MOV		A,FIFO_REQUEST
+1120  0177  0C08        		XOR		A,get_configuration
+1121  0178  3D0A        		SZ		Z
+1122  0179  2800     E  		JMP		GetConfiguration
+1123  017A              
+1124  017A              ;Get Status(DEVICE)			80 00
+1125  017A  0001        		clr wdt
+1126  017B  075A        		MOV		A,FIFO_REQUEST
+1127  017C  0C00        		XOR		A,get_status
+1128  017D  3D0A        		SZ		Z
+1129  017E  2800     E  		JMP		GetStatus
+1130  017F              
+1131  017F  2800     E  		JMP		SendStall0
+文件：MAIN.ASM     盛群编译器版本 2.86 页次20
+
+1132  0180              
+1133  0180              ;===============================================================
+1134  0180              Request_TYPE81:
+1135  0180              ;get status
+1136  0180              ;get interface -> not support
+1137  0180              ;HID class defines one more request for bmRequestType=81
+1138  0180              ;get HID descriptor
+1139  0180  0001        		clr wdt
+1140  0181  075A        		MOV		A,FIFO_REQUEST
+1141  0182  0C06        		XOR		A,get_descriptor
+1142  0183  3D0A        		SZ		Z
+1143  0184  2800     E  		JMP		GetDescriptor
+1144  0185              
+1145  0185              ;Get Interface
+1146  0185  0001        		clr wdt
+1147  0186  075A        		MOV		A,FIFO_REQUEST
+1148  0187  0C0A        		XOR		A,get_interface
+1149  0188  3D0A        		SZ		Z
+1150  0189  2800     E  		JMP		GetInterface
+1151  018A              
+1152  018A              ;Get Status(INTERFACE)			81 00
+1153  018A  0001        		clr wdt
+1154  018B  075A        		MOV		A,FIFO_REQUEST
+1155  018C  0C00        		XOR		A,get_status
+1156  018D  3D0A        		SZ		Z
+1157  018E  2800     E  		JMP		GetStatus_Interface ;modify for Remote Wakeup
+1158  018F              
+1159  018F  2800     E  		JMP		SendStall0
+1160  0190              ;===============================================================
+1161  0190              Request_TYPE82:
+1162  0190              ;get status
+1163  0190              ;Get Status(INTERFACE)			82 00
+1164  0190  0001        		clr wdt
+1165  0191  075A        		MOV		A,FIFO_REQUEST
+1166  0192  0C00        		XOR		A,get_status
+1167  0193  3D0A        		SZ		Z
+1168  0194  2800     E  		JMP		GetStatus_Endpoint
+1169  0195              
+1170  0195  2800     E  		JMP		SendStall0
+1171  0196              	
+1172  0196              ;===============================================================
+1173  0196              ;===============================================================
+1174  0196              ;Now parse HID class Descriptor Types
+1175  0196              ;===============================================================
+1176  0196              ;host to device with endpoint as recipient
+1177  0196              Request_TYPE21:
+1178  0196  0001        		clr wdt
+1179  0197              		;set report
+1180  0197  075A        		MOV		A,FIFO_REQUEST
+1181  0198  0C09        		XOR		A,set_report
+1182  0199  3D0A        		SZ		Z
+1183  019A  2800     E  		JMP		SetReport
+1184  019B              
+1185  019B              		;------------------------------------------------------
+1186  019B              		;audio class-specific request code
+1187  019B              		;------------------------------------------------------
+1188  019B              
+1189  019B  075A        		MOV		A,FIFO_REQUEST
+1190  019C  0C01        		XOR		A,SET_CUR
+1191  019D  3D0A        		SZ		Z
+文件：MAIN.ASM     盛群编译器版本 2.86 页次21
+
+1192  019E  2800     E  		JMP		SetCur
+1193  019F              
+1194  019F              Request_TYPE21_End:
+1195  019F  2800     E  		JMP		SendStall0	
+1196  01A0              		
+1197  01A0              Request_TypeA1:
+1198  01A0  075A        		MOV		A,FIFO_REQUEST
+1199  01A1  0C82        		XOR		A,GET_MIN
+1200  01A2  3D0A        		SZ		Z
+1201  01A3  2800     E  		JMP		GetMin
+1202  01A4              		
+1203  01A4  075A        		MOV		A,FIFO_REQUEST
+1204  01A5  0C83        		XOR		A,GET_MAX
+1205  01A6  3D0A        		SZ		Z
+1206  01A7  2800     E  		JMP		GetMax
+1207  01A8              		
+1208  01A8  075A        		MOV		A,FIFO_REQUEST
+1209  01A9  0C84        		XOR		A,GET_RES
+1210  01AA  3D0A        		SZ		Z
+1211  01AB  2800     E  		JMP		GetRes
+1212  01AC              
+1213  01AC  075A        		MOV		A,FIFO_REQUEST
+1214  01AD  0C81        		XOR		A,GET_CUR
+1215  01AE  3D0A        		SZ		Z
+1216  01AF  2800     E  		JMP		GetCur
+1217  01B0              		
+1218  01B0              
+1219  01B0              Request_TYPEA1_End:
+1220  01B0  2800     E  		JMP		SendStall0
+1221  01B1              ;===============================================================
+1222  01B1              ProcessOutData:
+1223  01B1  3DCE        		sz		bFlag_Real_Cmd
+1224  01B2  29B4        		jmp		ProcessOutData_End
+1225  01B3              		
+1226  01B3              ;;		clr wdt
+1227  01B3              ;;		CALL		FIFO0_RD_CHECK
+1228  01B3              ;;		SNZ		bFlag_FIFO_Ready
+1229  01B3              ;;		JMP		ProcessOutData		; the EP0 FIFO RD is not ready ⊿Τdata秈ㄓ		
+1230  01B3              
+1231  01B3              ;;		CALL		Read_FIFO0
+1232  01B3  22DE        		CALL		QN8027
+1233  01B4              ;;		nop
+1234  01B4              ;;		call		FIFO1_WR_CHECK
+1235  01B4              ;;		snz		bFlag_FIFO_Ready
+1236  01B4              ;;		jmp		ProcessOutData_End
+1237  01B4              		
+1238  01B4              ;;		call		Write_FIFO1
+1239  01B4              		
+1240  01B4              
+1241  01B4              ProcessOutData_End:
+1242  01B4  1F71        		clr		nCmdIndex1
+1243  01B5  290F        		jmp		USB_EP0_ISR_END	
+1244  01B6              
+1245  01B6              
+1246  01B6              
+1247  01B6              
+1248  01B6              Delay_20ms:
+1249  01B6  0001        			clr wdt
+1250  01B7  0F75        			mov		a,075H
+1251  01B8  00D4        			mov		Delay_1,a
+文件：MAIN.ASM     盛群编译器版本 2.86 页次22
+
+1252  01B9  0FFF        			mov		a,0FFH
+1253  01BA  00D5        			mov		Delay_2,a
+1254  01BB              Delay_20ms_Wait:
+1255  01BB  0001        			clr wdt
+1256  01BC  17D5        			SDZ		Delay_2
+1257  01BD  29BB        			JMP		Delay_20ms_Wait
+1258  01BE  17D4        			SDZ		Delay_1
+1259  01BF  29BB        			JMP		Delay_20ms_Wait
+1260  01C0  0003        			RET
+1261  01C1              
+1262  01C1              Delay_5ms:
+1263  01C1  0001        			clr wdt
+1264  01C2  0F3A        			mov		a,03AH
+1265  01C3  00D4        			mov		Delay_1,a
+1266  01C4  0FFF        			mov		a,0FFH
+1267  01C5  00D5        			mov		Delay_2,a
+1268  01C6              Delay_5ms_Wait:
+1269  01C6  0001        			clr wdt
+1270  01C7  17D5        			SDZ		Delay_2
+1271  01C8  29C6        			JMP		Delay_5ms_Wait
+1272  01C9  17D4        			SDZ		Delay_1
+1273  01CA  29C6        			JMP		Delay_5ms_Wait
+1274  01CB  0003        			RET
+1275  01CC              
+1276  01CC              
+1277  01CC              Delay 	PROC
+1278  01CC  0001        		clr wdt	
+1279  01CD  0FFF        		MOV		A,0FFH
+1280  01CE  00D4        		MOV		Delay_1,A
+1281  01CF  00D5        		MOV		Delay_2,A
+1282  01D0              
+1283  01D0              Wait:
+1284  01D0  0001        		clr wdt
+1285  01D1  17D5        		SDZ		Delay_2
+1286  01D2  29D0        		JMP		Wait
+1287  01D3  17D4        		SDZ		Delay_1
+1288  01D4  29D0        		JMP		Wait
+1289  01D5  0003        		RET
+1290  01D6              
+1291  01D6              Delay	ENDP
+1292  01D6              
+1293  01D6              
+1294  01D6              
+1295  01D6              ;***************************************************************
+1296  01D6              ;		Run_Volume_Step Module
+1297  01D6              ;		Volume1:Target
+1298  01D6              ;		Volume2:Now
+1299  01D6              ;***************************************************************
+1300  01D6              Run_Volume_Step:
+1301  01D6  0001        		clr wdt
+1302  01D7              		;check mute?
+1303  01D7  3DEB        		sz		bFlag_Audio_Mute
+1304  01D8  2A04        		jmp		Run_Volume_Step_End
+1305  01D9              
+1306  01D9              	
+1307  01D9  0770        		mov		a,VolumeL_Save
+1308  01DA  00ED        		mov		Volume1,a
+1309  01DB              
+1310  01DB              		;check Volume1 = 080H ?
+1311  01DB  0F80        		mov		a,80H
+文件：MAIN.ASM     盛群编译器版本 2.86 页次23
+
+1312  01DC  046D        		xor		a,Volume1
+1313  01DD  3D0A        		sz		z
+1314  01DE  29E0        		jmp		Run_Volume_Step_Process_Min
+1315  01DF  29E2        		jmp		Run_Volume_Step_1
+1316  01E0              
+1317  01E0              Run_Volume_Step_Process_Min:
+1318  01E0  0FC8        		mov		a,Min_Volume
+1319  01E1  00ED        		mov		Volume1,a
+1320  01E2              
+1321  01E2              		
+1322  01E2              
+1323  01E2              Run_Volume_Step_1:		
+1324  01E2              		
+1325  01E2  37ED        		clr		Volume1.7
+1326  01E3              
+1327  01E3  0F7F        		mov		a,01111111b
+1328  01E4  061C        		and		a,USVC
+1329  01E5  00EE        		mov		Volume2,a		;Volume2=now Volume1=target
+1330  01E6              		
+1331  01E6              		
+1332  01E6  076D        		mov		a,Volume1
+1333  01E7  046E        		xor		a,Volume2
+1334  01E8  3D0A        		sz		z
+1335  01E9  2A04        		jmp		Run_Volume_Step_End	;target=now
+1336  01EA              		
+1337  01EA  0001        		clr wdt
+1338  01EB  076D        		mov		a,Volume1
+1339  01EC  026E        		sub		a,Volume2		;target-now
+1340  01ED  3C0A        		sz		C
+1341  01EE  29F0        		jmp		Run_Volume_1		;>0
+1342  01EF  29F5        		jmp		Run_Volume_2		;<0
+1343  01F0              		
+1344  01F0              Run_Volume_1:
+1345  01F0  3B6D        		snz		Volume1.6
+1346  01F1  29FA        		jmp		Run_Volume_Step_Inc
+1347  01F2  3B6E        		snz		Volume2.6
+1348  01F3  29FC        		jmp		Run_Volume_Step_Dec
+1349  01F4  29FA        		jmp		Run_Volume_Step_Inc
+1350  01F5              		
+1351  01F5              Run_Volume_2:
+1352  01F5  3B6E        		snz		Volume2.6
+1353  01F6  29FC        		jmp		Run_Volume_Step_Dec
+1354  01F7  3B6D        		snz		Volume1.6
+1355  01F8  29FA        		jmp		Run_Volume_Step_Inc
+1356  01F9  29FC        		jmp		Run_Volume_Step_Dec
+1357  01FA              
+1358  01FA              		
+1359  01FA              
+1360  01FA              Run_Volume_Step_Inc:
+1361  01FA  14EE        		INC		Volume2
+1362  01FB  29FD        		jmp		Run_Volume_Step_2
+1363  01FC              Run_Volume_Step_Dec:
+1364  01FC  15EE        		DEC		Volume2		
+1365  01FD              Run_Volume_Step_2:		
+1366  01FD  3F9C        		sz		USVC.7
+1367  01FE  33EE        		set		Volume2.7
+1368  01FF  3B9C        		snz		USVC.7
+1369  0200  37EE        		clr		Volume2.7
+1370  0201              		kmov		USVC,Volume2
+1371  0203  0001        		clr wdt		
+文件：MAIN.ASM     盛群编译器版本 2.86 页次24
+
+1372  0204              Run_Volume_Step_End:				
+1373  0204  0003        		ret
+1374  0205              
+1375  0205              ;***************************************************************
+1376  0205              ;		Key_Debounced Module
+1377  0205              ;		Key_Defined : 饼盎代 bit
+1378  0205              ;		Key_Process : 矪瞶筁 叫 set  bit
+1379  0205              ;		Key_CheckIn : 材Ω盎代惠璶 set  bit
+1380  0205              ;		Key_Counter : 纗 bit  1
+1381  0205              ;		狦惠璶硈尿笆玥叫づ set Key_Process ( INC,DEC Volume)
+1382  0205              ;		狦ぃ惠璶硈尿笆叫 set Key_Process ( Mute,Play,Stop)
+1383  0205              ;***************************************************************
+1384  0205              IF	UseMediaKey
+1385  0205              Key_Debounced:
+1386  0205              	       	clr wdt
+1387  0205              	       	mov		a,VIOP
+1388  0205              		cpl		acc
+1389  0205              		mov		PortC_Data,a
+1390  0205              
+1391  0205              		mov		a,Key_Defined
+1392  0205              		andm		a,PortC_Data
+1393  0205              		sz		z
+1394  0205              		jmp		Key_Debounced_ClearReg	;//⊿龄砆
+1395  0205              
+1396  0205              
+1397  0205              Key_Debounced_Detect_In:		
+1398  0205              		kmov		Key_Temp,PortC_Data
+1399  0205              		clr		Key_Counter
+1400  0205              Key_Debounced_Detect:		
+1401  0205              		clr		C
+1402  0205              		RRC		Key_Temp
+1403  0205              		sz		C
+1404  0205              		jmp		Key_Debounced_Detect_End
+1405  0205              		inc		Key_Counter
+1406  0205              		mov		a,080H
+1407  0205              		xor		a,Key_Temp
+1408  0205              		sz		z
+1409  0205              		jmp		Key_Debounced_Detect_End
+1410  0205              		jmp		Key_Debounced_Detect
+1411  0205              Key_Debounced_Detect_End:
+1412  0205              		mov		a,Key_Counter
+1413  0205              		call		GetPipeBit
+1414  0205              		
+1415  0205              		xor		a,Key_CheckIn
+1416  0205              		snz		z
+1417  0205              		jmp		Key_Debounced_SetCheckIn
+1418  0205              		
+1419  0205              		;check process
+1420  0205              		mov		a,Key_Process
+1421  0205              		xor		a,Key_CheckIn
+1422  0205              		sz		z
+1423  0205              		jmp		Key_Debounced_End
+1424  0205              		jmp		Key_Debounced_Process		
+1425  0205              		
+1426  0205              ;璝ぃ惠璶矪瞶叫 jmp Key_Debounced_End
+1427  0205              		nop
+1428  0205              		nop
+1429  0205              		nop
+1430  0205              Key_Debounced_Process:
+1431  0205              		clr wdt
+文件：MAIN.ASM     盛群编译器版本 2.86 页次25
+
+1432  0205              		mov	a,Key_Counter
+1433  0205              		addm	a,pcl
+1434  0205              		jmp	Key_Debounced_Process_WindowsMediaPlayer
+1435  0205              		jmp	Key_Debounced_Process_Mute
+1436  0205              		jmp	Key_Debounced_Process_Dec
+1437  0205              		jmp	Key_Debounced_Process_Inc
+1438  0205              		jmp	Key_Debounced_Process_PlayPause
+1439  0205              		jmp	Key_Debounced_Process_Stop
+1440  0205              		jmp	Key_Debounced_Process_NextTrack
+1441  0205              		jmp	Key_Debounced_Process_PreviousTrack
+1442  0205              
+1443  0205              Key_Debounced_SetCheckIn:
+1444  0205              		mov	Key_CheckIn,a
+1445  0205              		clr	Key_Process
+1446  0205              		kmov	Key_IncCounter,Const_Counter
+1447  0205              		kmov	Key_DecCounter,Const_Counter
+1448  0205              		jmp	Key_Debounced_End
+1449  0205              
+1450  0205              Key_Debounced_ClearReg:
+1451  0205              		clr		acc
+1452  0205              		xor		a,Key_CheckIn
+1453  0205              		sz		z
+1454  0205              		jmp		Key_Debounced_End
+1455  0205              		jmp		Key_Debounced_ClearReg_2
+1456  0205              ;		clr		acc
+1457  0205              ;		xor		a,Key_Process
+1458  0205              ;		snz		z
+1459  0205              ;		jmp		Key_Debounced_ClearReg_2
+1460  0205              ;		jmp		Key_Debounced_End
+1461  0205              
+1462  0205              Key_Debounced_ClearReg_2:
+1463  0205              		clr		Key_CheckIn
+1464  0205              		clr		Key_Process
+1465  0205              
+1466  0205              Key_Debounced_ClearReg_1:
+1467  0205              		CALL		FIFO1_WR_CHECK
+1468  0205              		SNZ		bFlag_FIFO_Ready
+1469  0205              		JMP		Key_Debounced_End
+1470  0205              
+1471  0205              	IF	UseReportID
+1472  0205              		MOV		A,01H		;REPORT ID
+1473  0205              		MOV		FIFO_OUT1,A
+1474  0205              		MOV		A,00H
+1475  0205              		MOV		FIFO_OUT2,A
+1476  0205              		MOV		A,02H
+1477  0205              		MOV		FIFO_SendLen,A		
+1478  0205              	ELSE
+1479  0205              		MOV		A,00H
+1480  0205              		MOV		FIFO_OUT1,A
+1481  0205              		MOV		A,01H
+1482  0205              		MOV		FIFO_SendLen,A		
+1483  0205              	ENDIF
+1484  0205              		CALL		WRITE_FIFO1
+1485  0205              		;//write fifo
+1486  0205              		nop				
+1487  0205              
+1488  0205              
+1489  0205              Key_Debounced_My_Function:
+1490  0205              	;-----------------------------------------------------------
+1491  0205              	; Here to add your another code !!
+文件：MAIN.ASM     盛群编译器版本 2.86 页次26
+
+1492  0205              	;-----------------------------------------------------------
+1493  0205              		nop
+1494  0205              		
+1495  0205              		
+1496  0205              		jmp		Key_Debounced_End	
+1497  0205              
+1498  0205              Key_Debounced_End:
+1499  0205              		clr wdt
+1500  0205              		ret
+1501  0205              ;=========================Process
+1502  0205              Key_Debounced_Process_Mute:
+1503  0205              		clr wdt
+1504  0205              		CALL		FIFO1_WR_CHECK
+1505  0205              		SNZ		bFlag_FIFO_Ready
+1506  0205              		JMP		Key_Debounced_End
+1507  0205              
+1508  0205              	IF	UseReportID
+1509  0205              		MOV		A,01H		;REPORT ID
+1510  0205              		MOV		FIFO_OUT1,A
+1511  0205              		MOV		A,08H
+1512  0205              		MOV		FIFO_OUT2,A
+1513  0205              		MOV		A,02H
+1514  0205              		MOV		FIFO_SendLen,A		
+1515  0205              	ELSE
+1516  0205              		MOV		A,08H
+1517  0205              		MOV		FIFO_OUT1,A
+1518  0205              		MOV		A,01H
+1519  0205              		MOV		FIFO_SendLen,A				
+1520  0205              	ENDIF
+1521  0205              		CALL		WRITE_FIFO1
+1522  0205              		nop
+1523  0205              		kmov	Key_Process,Key_CheckIn
+1524  0205              		jmp	Key_Debounced_End
+1525  0205              Key_Debounced_Process_Dec:
+1526  0205              		clr wdt
+1527  0205              		sdz	Key_DecCounter
+1528  0205              		jmp	Key_Debounced_End
+1529  0205              
+1530  0205              		CALL		FIFO1_WR_CHECK
+1531  0205              		SNZ		bFlag_FIFO_Ready
+1532  0205              		JMP		Key_Debounced_End
+1533  0205              	IF	UseReportID
+1534  0205              		MOV		A,01H		;REPORT ID
+1535  0205              		MOV		FIFO_OUT1,A	
+1536  0205              		MOV		A,02H
+1537  0205              		MOV		FIFO_OUT2,A
+1538  0205              		MOV		A,02H
+1539  0205              		MOV		FIFO_SendLen,A		
+1540  0205              	ELSE	
+1541  0205              		MOV		A,02H
+1542  0205              		MOV		FIFO_OUT1,A
+1543  0205              		MOV		A,01H
+1544  0205              		MOV		FIFO_SendLen,A		
+1545  0205              	ENDIF
+1546  0205              		CALL		WRITE_FIFO1
+1547  0205              		nop
+1548  0205              		kmov	Key_DecCounter,Const_Counter
+1549  0205              		nop
+1550  0205              		jmp	Key_Debounced_End
+1551  0205              
+文件：MAIN.ASM     盛群编译器版本 2.86 页次27
+
+1552  0205              Key_Debounced_Process_Inc:
+1553  0205              		clr wdt
+1554  0205              		sdz	Key_IncCounter
+1555  0205              		jmp	Key_Debounced_End
+1556  0205              
+1557  0205              		CALL		FIFO1_WR_CHECK
+1558  0205              		SNZ		bFlag_FIFO_Ready
+1559  0205              		JMP		Key_Debounced_End
+1560  0205              	IF	UseReportID
+1561  0205              		MOV		A,01H		;REPORT ID
+1562  0205              		MOV		FIFO_OUT1,A
+1563  0205              		MOV		A,01H
+1564  0205              		MOV		FIFO_OUT2,A
+1565  0205              		MOV		A,02H
+1566  0205              		MOV		FIFO_SendLen,A		
+1567  0205              	else	
+1568  0205              		MOV		A,01H
+1569  0205              		MOV		FIFO_OUT1,A
+1570  0205              		MOV		A,01H
+1571  0205              		MOV		FIFO_SendLen,A		
+1572  0205              	ENDIF	
+1573  0205              		CALL		WRITE_FIFO1
+1574  0205              		nop
+1575  0205              		kmov	Key_IncCounter,Const_Counter
+1576  0205              		nop
+1577  0205              		jmp	Key_Debounced_End
+1578  0205              
+1579  0205              ;===============================================================
+1580  0205              ;		User Add Some Key Debounced Code
+1581  0205              ;===============================================================
+1582  0205              Key_Debounced_Process_WindowsMediaPlayer:
+1583  0205              	;-----------------------------------------------------------
+1584  0205              	; Here to add your another code !!
+1585  0205              	;-----------------------------------------------------------
+1586  0205              		clr wdt
+1587  0205              		CALL		FIFO1_WR_CHECK
+1588  0205              		SNZ		bFlag_FIFO_Ready
+1589  0205              		JMP		Key_Debounced_End
+1590  0205              
+1591  0205              	IF	UseReportID
+1592  0205              		MOV		A,01H		;REPORT ID
+1593  0205              		MOV		FIFO_OUT1,A
+1594  0205              		MOV		A,04H
+1595  0205              		MOV		FIFO_OUT2,A
+1596  0205              		MOV		A,02H
+1597  0205              		MOV		FIFO_SendLen,A		
+1598  0205              	ELSE
+1599  0205              		MOV		A,04H
+1600  0205              		MOV		FIFO_OUT1,A
+1601  0205              		MOV		A,01H
+1602  0205              		MOV		FIFO_SendLen,A				
+1603  0205              	ENDIF
+1604  0205              		CALL		WRITE_FIFO1
+1605  0205              		nop
+1606  0205              		kmov	Key_Process,Key_CheckIn
+1607  0205              		jmp	Key_Debounced_End
+1608  0205              
+1609  0205              Key_Debounced_Process_PlayPause:
+1610  0205              	;-----------------------------------------------------------
+1611  0205              	; Here to add your another code !!
+文件：MAIN.ASM     盛群编译器版本 2.86 页次28
+
+1612  0205              	;-----------------------------------------------------------
+1613  0205              		clr wdt
+1614  0205              		CALL		FIFO1_WR_CHECK
+1615  0205              		SNZ		bFlag_FIFO_Ready
+1616  0205              		JMP		Key_Debounced_End
+1617  0205              
+1618  0205              	IF	UseReportID
+1619  0205              		MOV		A,01H		;REPORT ID
+1620  0205              		MOV		FIFO_OUT1,A
+1621  0205              		MOV		A,10H
+1622  0205              		MOV		FIFO_OUT2,A
+1623  0205              		MOV		A,02H
+1624  0205              		MOV		FIFO_SendLen,A		
+1625  0205              	ELSE
+1626  0205              		MOV		A,10H
+1627  0205              		MOV		FIFO_OUT1,A
+1628  0205              		MOV		A,01H
+1629  0205              		MOV		FIFO_SendLen,A				
+1630  0205              	ENDIF
+1631  0205              		CALL		WRITE_FIFO1
+1632  0205              		nop
+1633  0205              		kmov	Key_Process,Key_CheckIn
+1634  0205              
+1635  0205              		jmp	Key_Debounced_End
+1636  0205              
+1637  0205              Key_Debounced_Process_Stop:
+1638  0205              	;-----------------------------------------------------------
+1639  0205              	; Here to add your another code !!
+1640  0205              	;-----------------------------------------------------------
+1641  0205              		clr wdt
+1642  0205              		CALL		FIFO1_WR_CHECK
+1643  0205              		SNZ		bFlag_FIFO_Ready
+1644  0205              		JMP		Key_Debounced_End
+1645  0205              	IF	UseReportID
+1646  0205              		MOV		A,01H		;REPORT ID
+1647  0205              		MOV		FIFO_OUT1,A
+1648  0205              		MOV		A,20H
+1649  0205              		MOV		FIFO_OUT2,A
+1650  0205              		MOV		A,02H
+1651  0205              		MOV		FIFO_SendLen,A		
+1652  0205              	ELSE
+1653  0205              		MOV		A,20H
+1654  0205              		MOV		FIFO_OUT1,A
+1655  0205              		MOV		A,01H
+1656  0205              		MOV		FIFO_SendLen,A				
+1657  0205              	ENDIF
+1658  0205              		CALL		WRITE_FIFO1
+1659  0205              		nop
+1660  0205              		kmov	Key_Process,Key_CheckIn
+1661  0205              
+1662  0205              		jmp	Key_Debounced_End
+1663  0205              
+1664  0205              Key_Debounced_Process_NextTrack:
+1665  0205              	;-----------------------------------------------------------
+1666  0205              	; Here to add your another code !!
+1667  0205              	;-----------------------------------------------------------
+1668  0205              		clr wdt
+1669  0205              		CALL		FIFO1_WR_CHECK
+1670  0205              		SNZ		bFlag_FIFO_Ready
+1671  0205              		JMP		Key_Debounced_End
+文件：MAIN.ASM     盛群编译器版本 2.86 页次29
+
+1672  0205              	IF	UseReportID
+1673  0205              		MOV		A,01H		;REPORT ID
+1674  0205              		MOV		FIFO_OUT1,A
+1675  0205              		MOV		A,40H
+1676  0205              		MOV		FIFO_OUT2,A
+1677  0205              		MOV		A,02H
+1678  0205              		MOV		FIFO_SendLen,A		
+1679  0205              	ELSE
+1680  0205              		MOV		A,40H
+1681  0205              		MOV		FIFO_OUT1,A
+1682  0205              		MOV		A,01H
+1683  0205              		MOV		FIFO_SendLen,A				
+1684  0205              	ENDIF
+1685  0205              		CALL		WRITE_FIFO1
+1686  0205              		nop
+1687  0205              		kmov	Key_Process,Key_CheckIn
+1688  0205              
+1689  0205              		jmp	Key_Debounced_End
+1690  0205              
+1691  0205              Key_Debounced_Process_PreviousTrack:
+1692  0205              	;-----------------------------------------------------------
+1693  0205              	; Here to add your another code !!
+1694  0205              	;-----------------------------------------------------------
+1695  0205              		clr wdt
+1696  0205              		CALL		FIFO1_WR_CHECK
+1697  0205              		SNZ		bFlag_FIFO_Ready
+1698  0205              		JMP		Key_Debounced_End
+1699  0205              	IF	UseReportID
+1700  0205              		MOV		A,01H		;REPORT ID
+1701  0205              		MOV		FIFO_OUT1,A
+1702  0205              		MOV		A,80H
+1703  0205              		MOV		FIFO_OUT2,A
+1704  0205              		MOV		A,02H
+1705  0205              		MOV		FIFO_SendLen,A		
+1706  0205              	ELSE
+1707  0205              		MOV		A,80H
+1708  0205              		MOV		FIFO_OUT1,A
+1709  0205              		MOV		A,01H
+1710  0205              		MOV		FIFO_SendLen,A				
+1711  0205              	ENDIF
+1712  0205              		CALL		WRITE_FIFO1
+1713  0205              		nop
+1714  0205              		kmov	Key_Process,Key_CheckIn
+1715  0205              
+1716  0205              		jmp	Key_Debounced_End
+1717  0205              ENDIF
+1718  0205              
+1719  0205              
+1720  0205              wait_about_1s:
+1721  0205              	;;;*******************************************
+1722  0205              	;;;delay 1S 255*255*3*16*0.3333333=1.04S
+1723  0205              	;;;*******************************************
+1724  0205  0001        		clr wdt
+1725  0206  1F54        		clr		Delay_1
+1726  0207  1F55        		clr		Delay_2
+1727  0208              		kmov		Delay_3,16
+1728  020A              	wait_about_1s_loop:
+1729  020A  0001        		clr wdt
+1730  020B  17D4        		sdz		Delay_1
+1731  020C  2A0A        		jmp		wait_about_1s_loop
+文件：MAIN.ASM     盛群编译器版本 2.86 页次30
+
+1732  020D  17D5        		sdz		Delay_2
+1733  020E  2A0A        		jmp		wait_about_1s_loop
+1734  020F  17D6        		sdz		Delay_3
+1735  0210  2A0A        		jmp		wait_about_1s_loop
+1736  0211  0001        		clr wdt
+1737  0212  0000        		nop
+1738  0213  0003        	ret	
+1739  0214              
+1740  0214              
+1741  0214              
+1742  0214              Public		FIFO_Size
+1743  0214              Public		FIFO_SendLen
+1744  0214              
+1745  0214              Public		FIFO_Type
+1746  0214              Public		FIFO_Request
+1747  0214              Public		FIFO_wValueL
+1748  0214              Public		FIFO_wValueH
+1749  0214              Public		FIFO_wIndexL
+1750  0214              Public		FIFO_wIndexH
+1751  0214              Public		FIFO_wLengthL
+1752  0214              Public		FIFO_wLengthH
+1753  0214              
+1754  0214              Public		FIFO_Out1
+1755  0214              Public		FIFO_Out2
+1756  0214              Public		FIFO_Out3
+1757  0214              Public		FIFO_Out4
+1758  0214              Public		FIFO_Out5
+1759  0214              Public		FIFO_Out6
+1760  0214              Public		FIFO_Out7
+1761  0214              Public		FIFO_Out8
+1762  0214              
+1763  0214              Public		USB_Interface
+1764  0214              Public		USB_Interface_Alt
+1765  0214              Public		USB_Configuration
+1766  0214              
+1767  0214              Public		FIFO_ADDR
+1768  0214              
+1769  0214              
+1770  0214              
+1771  0214              Public		nCmdIndex1
+1772  0214              
+1773  0214              
+1774  0214              Public		Loop_Counter
+1775  0214              Public		Data_Count
+1776  0214              Public		Data_Start
+1777  0214              Public		FIFO_TEMP
+1778  0214              Public		bFlag_Real_Cmd
+1779  0214              Public		bFlag_FIFO_Ready
+1780  0214              Public		bFlag_FIFO_LEN0
+1781  0214              Public		bFlag_RD_HTable
+1782  0214              Public		bFlag_wait_control_out
+1783  0214              Public		bFlag_SET_ADDRESS
+1784  0214              Public		bFlag_SCMD
+1785  0214              Public		bFlag_Enum_Ready
+1786  0214              Public		bFlag_SetConfiguration_Ready
+1787  0214              Public		bFlag_SetInterface_Ready
+1788  0214              
+1789  0214              
+1790  0214              Public		USB_ISR_END
+1791  0214              Public		USB_EP0_ISR_END
+文件：MAIN.ASM     盛群编译器版本 2.86 页次31
+
+1792  0214              Public		StageOne
+1793  0214              
+1794  0214              
+1795  0214              
+1796  0214              Public	VolumeH_Save
+1797  0214              Public  VolumeL_Save
+1798  0214              Public	bFlag_Audio_Mute
+1799  0214              ;modify for Remote Wakeup
+1800  0214              public      bRmtWakeup
+1801  0214              public      b_wakeup
+1802  0214              
+1803  0214              ;;-----------------------------------------------
+1804  0214              #include	QN8027Driver.asm
+
+
+1805  0294              #include	QN8072Sub.asm
+
+
+1806  0339              
+1807  0339              END
+
+
+        0 Errors

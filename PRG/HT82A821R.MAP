@@ -1,0 +1,271 @@
+
+盛群连接器　版本7.5
+版权　盛群半导体公司 2002-2003
+
+Input Object File: E:\项目\USB 音频发射\USB Audio(PC)\COD\PRG\DES.OBJ
+Input Object File: E:\项目\USB 音频发射\USB Audio(PC)\COD\PRG\FUNCTION.OBJ
+Input Object File: E:\项目\USB 音频发射\USB Audio(PC)\COD\PRG\MACRO.OBJ
+Input Object File: E:\项目\USB 音频发射\USB Audio(PC)\COD\PRG\MAIN.OBJ
+
+Input Library File: C:\HT-IDE3000\LIB\MATH6.LIB
+
+
+     Start     End      Length     Class      Name
+     0000h     0338h    0339h      CODE       CODE (E:\项目\USB 音频发射\USB Audio(PC)\COD\PRG\MAIN.OBJ)
+     0339h     05fbh    02c3h      CODE       OLDMAIN (E:\项目\USB 音频发射\USB Audio(PC)\COD\PRG\FUNCTION.OBJ)
+     0700h     077fh    0080h      CODE       DESCRIPT (E:\项目\USB 音频发射\USB Audio(PC)\COD\PRG\DES.OBJ)
+     0040h     0072h    0033h      DATA       DATA (E:\项目\USB 音频发射\USB Audio(PC)\COD\PRG\MAIN.OBJ)
+
+
+     Indepentent Local Sections
+
+     Start     End      Length     Class      Name
+     0073h     0073h    0000h      ILOCAL     DELAY (E:\项目\USB 音频发射\USB Audio(PC)\COD\PRG\MAIN.OBJ)
+
+     Public Symbols Information
+     Address            Public by Name
+     006bh[3]           BFLAG_AUDIO_MUTE
+     006bh[2]           BFLAG_ENUM_READY
+     004eh[5]           BFLAG_FIFO_LEN0
+     004eh[4]           BFLAG_FIFO_READY
+     004eh[6]           BFLAG_RD_HTABLE
+     004eh[3]           BFLAG_REAL_CMD
+     006bh[1]           BFLAG_SCMD
+     004eh[1]           BFLAG_SETCONFIGURATION_READY
+     004eh[2]           BFLAG_SETINTERFACE_READY
+     006bh[0]           BFLAG_SET_ADDRESS
+     004eh[7]           BFLAG_WAIT_CONTROL_OUT
+     006bh[4]           BRMTWAKEUP
+     006bh[5]           B_WAKEUP
+     044ah              CHECK_REAL_CMD
+     04b6h              CLEARFEATURE
+     04bfh              CLEARFEATURE_ENDPOINT
+     077dh              CONFIG_DESC_LENGTH
+     070ah              CONFIG_DESC_TABLE
+     040ch              CONTROL_READ
+     0700h              CONTROL_READ_TABLE
+     0067h              DATA_COUNT
+     0068h              DATA_START
+     05edh              DELAY_3US
+     0700h              DEVICE_DESC_TABLE
+     0755h              END_CONFIG_DESC_TABLE
+     0763h              END_HID_REPORT_DESC_TABLE
+     05e2h              EXECUTE
+     0339h              FIFO0_RD_CHECK
+     035dh              FIFO0_WR_CHECK
+     033fh              FIFO1_RD_CHECK
+     0363h              FIFO1_WR_CHECK
+     0345h              FIFO2_RD_CHECK
+     0369h              FIFO2_WR_CHECK
+     034bh              FIFO3_RD_CHECK
+     036fh              FIFO3_WR_CHECK
+     0351h              FIFO4_RD_CHECK
+     0375h              FIFO4_WR_CHECK
+     0357h              FIFO5_RD_CHECK
+     037bh              FIFO5_WR_CHECK
+     0065h              FIFO_ADDR
+     0059h              FIFO_OUT1
+     005ah              FIFO_OUT2
+     005bh              FIFO_OUT3
+     005ch              FIFO_OUT4
+     005dh              FIFO_OUT5
+     005eh              FIFO_OUT6
+     005fh              FIFO_OUT7
+     0060h              FIFO_OUT8
+     005ah              FIFO_REQUEST
+     0058h              FIFO_SENDLEN
+     0057h              FIFO_SIZE
+     0061h              FIFO_TEMP
+     0059h              FIFO_TYPE
+     005eh              FIFO_WINDEXH
+     005dh              FIFO_WINDEXL
+     0060h              FIFO_WLENGTHH
+     005fh              FIFO_WLENGTHL
+     005ch              FIFO_WVALUEH
+     005bh              FIFO_WVALUEL
+     0509h              GETCONFIGURATION
+     059eh              GETCONFIGURATIONDESCRIPTOR
+     056eh              GETCUR
+     04f1h              GETDESCRIPTOR
+     0598h              GETDEVICEDESCRIPTOR
+     0475h              GETINTERFACE
+     054dh              GETMAX
+     053ch              GETMIN
+     05f4h              GETPIPEBIT
+     055eh              GETRES
+     0484h              GETSTATUS
+     04a6h              GETSTATUS_ENDPOINT
+     0496h              GETSTATUS_INTERFACE
+     05a5h              GETSTRINGDESCRIPTOR
+     03fch              GET_DESCRIPTOR_LENGTH
+     074ch              HID_DESC
+     077fh              HID_DESC_LENGTH
+     0755h              HID_REPORT_DESC_TABLE
+     0066h              LOOP_COUNTER
+     0071h              NCMDINDEX1
+     039ah              READ_FIFO0
+     039eh              READ_FIFO1
+     03a2h              READ_FIFO2
+     03a6h              READ_FIFO3
+     03aah              READ_FIFO4
+     03aeh              READ_FIFO5
+     077eh              REPORT_DESC_LENGTH
+     05e7h              SENDSTALL0
+     03c7h              SEND_HAND_SHAKE
+     0451h              SETADDRESS
+     0464h              SETCONFIGURATION
+     052ah              SETCUR
+     04cch              SETFEATURE
+     04e5h              SETFEATURE_ENDPOINT
+     0597h              SETIDLE
+     046ch              SETINTERFACE
+     0518h              SETREPORT
+     011ch              STAGEONE
+     0765h              USBSTRINGDESCRIPTION1
+     076dh              USBSTRINGDESCRIPTION2
+     0778h              USBSTRINGDESCRIPTION3
+     0763h              USBSTRINGLANGUAGEDESCRIPTION
+     0064h              USB_CONFIGURATION
+     010fh              USB_EP0_ISR_END
+     0062h              USB_INTERFACE
+     0063h              USB_INTERFACE_ALT
+     00adh              USB_ISR_END
+     006fh              VOLUMEH_SAVE
+     0070h              VOLUMEL_SAVE
+     03d5h              WRITE_FIFO0
+     03d7h              WRITE_FIFO1
+     03d9h              WRITE_FIFO2
+     03dbh              WRITE_FIFO3
+     03ddh              WRITE_FIFO4
+     03dfh              WRITE_FIFO5
+
+     Address            Public by Value
+     0057h              FIFO_SIZE
+     0058h              FIFO_SENDLEN
+     0059h              FIFO_OUT1
+     0059h              FIFO_TYPE
+     005ah              FIFO_REQUEST
+     005ah              FIFO_OUT2
+     005bh              FIFO_OUT3
+     005bh              FIFO_WVALUEL
+     005ch              FIFO_WVALUEH
+     005ch              FIFO_OUT4
+     005dh              FIFO_OUT5
+     005dh              FIFO_WINDEXL
+     005eh              FIFO_WINDEXH
+     005eh              FIFO_OUT6
+     005fh              FIFO_OUT7
+     005fh              FIFO_WLENGTHL
+     0060h              FIFO_WLENGTHH
+     0060h              FIFO_OUT8
+     0061h              FIFO_TEMP
+     0062h              USB_INTERFACE
+     0063h              USB_INTERFACE_ALT
+     0064h              USB_CONFIGURATION
+     0065h              FIFO_ADDR
+     0066h              LOOP_COUNTER
+     0067h              DATA_COUNT
+     0068h              DATA_START
+     006fh              VOLUMEH_SAVE
+     0070h              VOLUMEL_SAVE
+     0071h              NCMDINDEX1
+     00adh              USB_ISR_END
+     010fh              USB_EP0_ISR_END
+     011ch              STAGEONE
+     004eh[1]           BFLAG_SETCONFIGURATION_READY
+     004eh[2]           BFLAG_SETINTERFACE_READY
+     004eh[3]           BFLAG_REAL_CMD
+     004eh[4]           BFLAG_FIFO_READY
+     004eh[5]           BFLAG_FIFO_LEN0
+     004eh[6]           BFLAG_RD_HTABLE
+     004eh[7]           BFLAG_WAIT_CONTROL_OUT
+     0339h              FIFO0_RD_CHECK
+     033fh              FIFO1_RD_CHECK
+     0345h              FIFO2_RD_CHECK
+     034bh              FIFO3_RD_CHECK
+     0351h              FIFO4_RD_CHECK
+     0357h              FIFO5_RD_CHECK
+     006bh[0]           BFLAG_SET_ADDRESS
+     006bh[1]           BFLAG_SCMD
+     006bh[2]           BFLAG_ENUM_READY
+     006bh[3]           BFLAG_AUDIO_MUTE
+     006bh[4]           BRMTWAKEUP
+     035dh              FIFO0_WR_CHECK
+     006bh[5]           B_WAKEUP
+     0363h              FIFO1_WR_CHECK
+     0369h              FIFO2_WR_CHECK
+     036fh              FIFO3_WR_CHECK
+     0375h              FIFO4_WR_CHECK
+     037bh              FIFO5_WR_CHECK
+     039ah              READ_FIFO0
+     039eh              READ_FIFO1
+     03a2h              READ_FIFO2
+     03a6h              READ_FIFO3
+     03aah              READ_FIFO4
+     03aeh              READ_FIFO5
+     03c7h              SEND_HAND_SHAKE
+     03d5h              WRITE_FIFO0
+     03d7h              WRITE_FIFO1
+     03d9h              WRITE_FIFO2
+     03dbh              WRITE_FIFO3
+     03ddh              WRITE_FIFO4
+     03dfh              WRITE_FIFO5
+     03fch              GET_DESCRIPTOR_LENGTH
+     040ch              CONTROL_READ
+     044ah              CHECK_REAL_CMD
+     0451h              SETADDRESS
+     0464h              SETCONFIGURATION
+     046ch              SETINTERFACE
+     0475h              GETINTERFACE
+     0484h              GETSTATUS
+     0496h              GETSTATUS_INTERFACE
+     04a6h              GETSTATUS_ENDPOINT
+     04b6h              CLEARFEATURE
+     04bfh              CLEARFEATURE_ENDPOINT
+     04cch              SETFEATURE
+     04e5h              SETFEATURE_ENDPOINT
+     04f1h              GETDESCRIPTOR
+     0509h              GETCONFIGURATION
+     0518h              SETREPORT
+     052ah              SETCUR
+     053ch              GETMIN
+     054dh              GETMAX
+     055eh              GETRES
+     056eh              GETCUR
+     0597h              SETIDLE
+     0598h              GETDEVICEDESCRIPTOR
+     059eh              GETCONFIGURATIONDESCRIPTOR
+     05a5h              GETSTRINGDESCRIPTOR
+     05e2h              EXECUTE
+     05e7h              SENDSTALL0
+     05edh              DELAY_3US
+     05f4h              GETPIPEBIT
+     0700h              CONTROL_READ_TABLE
+     0700h              DEVICE_DESC_TABLE
+     070ah              CONFIG_DESC_TABLE
+     074ch              HID_DESC
+     0755h              END_CONFIG_DESC_TABLE
+     0755h              HID_REPORT_DESC_TABLE
+     0763h              USBSTRINGLANGUAGEDESCRIPTION
+     0763h              END_HID_REPORT_DESC_TABLE
+     0765h              USBSTRINGDESCRIPTION1
+     076dh              USBSTRINGDESCRIPTION2
+     0778h              USBSTRINGDESCRIPTION3
+     077dh              CONFIG_DESC_LENGTH
+     077eh              REPORT_DESC_LENGTH
+     077fh              HID_DESC_LENGTH
+
+
+ROM Usage Statistics
+     Size      Used     Percent
+     0800h     067ch    81%
+
+RAM Usage Statistics
+     Size      Used     Percent
+     00c0h     0033h    26%
+
+Call Tree
+
+HLINK：程序的开始执行点在程序段'CODE'（地址0）。定义在'E:\项目\USB 音频发射\USB Audio(PC)\COD\PRG\MAIN.OBJ' 文件中
+
+错误总数：0  警告总数：0

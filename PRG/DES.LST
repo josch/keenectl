@@ -1,0 +1,258 @@
+文件：DES.ASM      盛群编译器版本 2.86 页次1
+
+
+   1  0000              ;====================================================================
+   2  0000              ;	ROM Size     , HT82A821R = 2K	, last page = 0700H
+   3  0000              ;		       HT82A822R = 4K	, last page = 0F00H
+   4  0000              ;	If use HT82A821R
+   5  0000              ;		       #defined HT82A821R 1
+   6  0000              ;		       #defined HT82A822R 0
+   7  0000              ;	If use HT82A822R
+   8  0000              ;		       #defined HT82A821R 0
+   9  0000              ;		       #defined HT82A822R 1
+  10  0000              ;====================================================================
+  11  0000              ;	Use ReportID , Report ID 1 = Volume HID control
+  12  0000              ;		       Report ID 2 = Transform Other Data
+  13  0000              ;====================================================================
+  14  0000              
+  15  0000              #include		ht82a821r.inc
+
+
+  16  0000              #include		const.inc
+
+
+  17  0000              #define		HT82A821R	1
+  18  0000              #define		HT82A822R	0
+  19  0000              
+  20  0000              IF	HT82A821R
+  21  0000              Descript		.Section   at   0700h		'code'
+  22  0000              ENDIF
+  23  0000              
+  24  0000              
+  25  0000              IF	HT82A822R
+  26  0000              Descript		.Section   at   0F00h		'code'
+  27  0000              ENDIF
+  28  0000              
+  29  0000              
+  30  0000              
+  31  0000              control_read_table:
+  32  0000              	device_desc_table:
+  33  0000  0112        		DW	00112H	;descriptor type (device descriptor) , size of descriptor (18 bytes)
+  34  0001  0110        		DW	00110H	;USB spec release (ver 1.1)
+  35  0002  0000        		DW	00000H	;device sub-class , device class
+  36  0003  0800        		DW	00800H	;maximum packet size , device sub-sub-class
+  37  0004  046D        		DW  	0046DH  ;vender ID = 004D9H
+  38  0005  3F0E        		DW	03F0EH
+  39  0006  3F0A        		DW	03F0AH	;product ID (Sample Device) = 0x2821		
+  40  0007  0100        		DW	00100H	;product version ID
+  41  0008  0201        		DW	00201H	;product string index (device show) , manufacturer string index
+  42  0009  0100        		DW	00100H	;number of configurations
+  43  000A              	config_desc_table:
+  44  000A  0209        		DW	00209H	;descriptor type (config descriptor) , size of descriptor
+  45  000B  0087        		DW	00087H	;total length of descriptor (34 bytes)
+  46  000C  0103        		DW	00103H	;1 configuration , 3 interface
+  47  000D  3F00        		DW	03F00H	;configuration string index
+  48  000E  3FA0        		DW	03FA0H	;configuration attributes (bus supply), Remote Wakeup
+  49  000F  3FFA        		DW	03FFAH	;maxpower (500ma)
+  50  0010              	Interface_Descriptor:
+  51  0010              	    Interface0_descriptor:
+  52  0010              	    standard_audio_control_interface_control:
+  53  0010  0409        		DW	00409H	;descriptor type (interface descriptor) , size of descriptor (9 bytes)
+  54  0011  0000        		DW	00000H	;interface alternate setting , interface number (0 base)
+  55  0012  0100        		DW	00100H	;interface class(01H for audio class) , number of endpoint (1 end point)
+文件：DES.ASM      盛群编译器版本 2.86 页次2
+
+  56  0013  0001        		DW	00001H	;interface protocol , interface sub-class (audio control)
+  57  0014  3F00        		DW	03F00H	;x , interface string index
+  58  0015              	    class_specific_audio_control_interface_descriptor:
+  59  0015  2409        	    	DW	02409H	;descriptor type (CS_INTERFACE) , size of descriptor (9 bytes)
+  60  0016  3F01        	    	DW	03F01H	;descriptor subtype (Header)
+  61  0017  0100        	    	DW	00100H	;audio device class specification release number(1.00)
+  62  0018  0028        	    	DW	00028H	;total number of bytes for the class-specific audiocontrol interface descriptor
+  63  0019  0101        	    	DW	00101H	;streaming interface number belongs to audio control interface , the number of streaming interface
+  64  001A              	    input_terminal:
+  65  001A  240C        	    	DW	0240CH	;descriptor type(CS_INTERFACE) , size of descriptor
+  66  001B  0102        	    	DW	00102H	;ID of this terminal(ID=1) , descriptor subtype(INPUT_TERMINAL)
+  67  001C  0101        	    	DW	00101H	;terminal type(USB streaming type)
+  68  001D  0200        	    	DW	00200H	;number of channel(two channel) , associate with output terminal
+  69  001E  0003        	    	DW	00003H	;channel config(Left/Right Front)
+  70  001F  0000        	    	DW	00000H	;channelname(unused) , terminal name(unused)
+  71  0020              	    feature_unit:
+  72  0020  240A        	    	DW	0240AH	;descriptor type(CS_INTERFACE) , size of descriptor(10 bytes)
+  73  0021  0D06        	    	DW	00D06H	;UnitID , descriptorSubtype(FEATURE_UNIT)
+  74  0022  0101        	    	DW	00101H	;control size(1) , SourceID(input terminal 01)
+  75  0023  0003        	    	DW	00003H	;D1(volume)control is enable foe channel 1 , D0(mute) D1(volume) is enable for channel 0
+  76  0024  0000        	    	DW	00000H	;index of this descriptor , D1(volume)control is enable for channel 2
+  77  0025              	    output_terminal:
+  78  0025  2409        	    	DW	02409H	;descriptor type(CS_INTERFACE) , size of descriptor(9 bytes)
+  79  0026  0303        	    	DW	00303H	;terminal ID(03) , descriptorsubtype(OUTPUT_TERMINAL)
+  80  0027  0301        	    	DW	00301H	;terminal is speaker
+  81  0028  0D00        	    	DW	00D00H	;sourceID(feature unit ID=0D) , associate terminal
+  82  0029  3F00        	    	DW	03F00H	;index of this descriptor
+  83  002A              	    Interface1_descriptor:
+  84  002A              	    zero_bw:
+  85  002A  0409        	    	DW	00409H	;descriptor type(INTERFACE) , sizoe of descriptor
+  86  002B  0001        	    	DW	00001H	;index of ths setting(alternatesetting = 0) , index of this interface
+  87  002C  0100        	    	DW	00100H	;interface-class(AUDIO) , number of endpoint(0)
+  88  002D  0002        	    	DW	00002H	;interface protocol(unused) , InterfaceSubClass(AUDIO_STREAMING)
+  89  002E  3F00        	    	DW	03F00H	;index string of this descriptor
+  90  002F              	    audio_streaming:
+  91  002F  0409        	    	DW	00409H	;descriptor type(INTERFACE) , size of descriptor
+  92  0030  0101        	    	DW	00101H	;index of the setting(alternatesetting = 1) ,index of this interface
+  93  0031  0101        	    	DW	00101H	;interface-class(AUDIO) , number of endpoint(1)
+  94  0032  0002        	    	DW	00002H	;interface protocol(unused) , InterfaceSubClass(AUDIO_STREAMING)
+  95  0033  3F00        	    	DW	03F00H	;index string of this descriptor
+  96  0034              	    class_specific_as_interface_desc:
+  97  0034  2407        	    	DW	02407H	;descriptor type(CS_INTERFACE) , size of descriptor
+  98  0035  0101        	    	DW	00101H	;terminalLink(Input terminal) , descriptor subtype(AS_GENERAL)
+  99  0036  3F01        	    	DW	03F01H	;interface delay(1)
+ 100  0037  0001        	    	DW	00001H	;PCM format
+ 101  0038              	    format_type_descriptor:
+ 102  0038  240B        	    	DW	0240BH	;descriptor type(CS_INTERFACE) , size of descriptor
+ 103  0039  0102        	    	DW	00102H	;FormatType(FORMAT_TYPE_I) , descriptorSubType(FORMAT_TYPE)
+ 104  003A  0202        	    	DW	00202H	;SubFrameSize(2 byte per slot) , number of channel(2 channels)
+ 105  003B  0110        	    	DW	00110H	;SamFreqType(support 1 type) , BitSolution(16 bits)
+ 106  003C  3F80        	    	DW	03F80H	;Sample Frequency(48000 Hz)
+ 107  003D  00BB        	    	DW	000BBH	;
+ 108  003E              	    end_point_descriptor:
+ 109  003E  0509        	    	DW	00509H	;descriptor type(END_POINT) , size of descriptor
+ 110  003F  0902        	    	DW	00902H	;endpoint attributes(adaptive,isochronous) , endpoint2(out direction)
+ 111  0040  00C0        	    	DW	000C0H	;maxPacketSize(192 bytes)
+ 112  0041  0001        	    	DW	00001H	;Refresh(0) , Interval(1ms)
+ 113  0042  3F00        	    	DW	03F00H	;index string of this descriptor
+ 114  0043              	    class_specific_endpoint_descriptor:
+ 115  0043  2507        	    	DW	02507H	;descriptor type(CS_ENDPOINT) , size of descriptor
+文件：DES.ASM      盛群编译器版本 2.86 页次3
+
+ 116  0044  0001        	    	DW	00001H	;Attributes(no sampling frequency , no pitch , no maxpackets control) , descriptorType(EP_GENERAL)
+ 117  0045  3F00        	    	DW	03F00H	;LockedDelayUnit(unused)
+ 118  0046  0000        	    	DW	00000H	;LockDelay(unused)
+ 119  0047              	    Interface2_descriptor:
+ 120  0047              	    HID_class:
+ 121  0047  0409        	    	DW	00409H	;INTERFACE descriptor , Size of this descriptor
+ 122  0048  0002        	    	DW	00002H	;Index of this string , index of this interface
+ 123  0049  0301        	    	DW	00301H	;HID , 1 endpoint
+ 124  004A  0000        	    	DW	00000H	;Unused , Non-Boot Device
+ 125  004B  3F00        	    	DW	03F00H	;null string
+ 126  004C              	    HID_Desc:
+ 127  004C  2109        	    	DW	02109H	;HID , Size of this descriptor
+ 128  004D  0110        	    	DW	00110H	;HID spec rev #1.10
+ 129  004E  0100        	    	DW	00100H	;bNumDescriptor , bCountryCode
+ 130  004F  3F22        	    	DW	03F22H	;Report Descriptor
+ 131  0050              	    	;====================================================================
+ 132  0050              	    	;	Use ReportID , Report ID 1 = Volume HID control
+ 133  0050              	    	;		       Report ID 2 = Transform Other Data
+ 134  0050              	    	;====================================================================
+ 135  0050              	    	IF	UseReportID
+ 136  0050              	    	DW	00016H	;67 bytes
+ 137  0050              			ELSE
+ 138  0050  0016        			DW	00016H	
+ 139  0051              			ENDIF
+ 140  0051              
+ 141  0051              	    HID_end_point_descriptor:
+ 142  0051  0507        	    	DW	00507H	;Endpoint descriptor , Length of this descriptor
+ 143  0052  0381        	    	DW	00381H	;Interrupt , Endpoint 1 In direction
+ 144  0053  0008        	    	DW	00008H	;wMaxPacketSize = 1 Bytes
+ 145  0054  3F30        	    	DW	03F30H	;48ms Interval
+ 146  0055              	end_config_desc_table:
+ 147  0055              
+ 148  0055              	hid_report_desc_table:
+ 149  0055              ;====================================================================
+ 150  0055              ;	Use ReportID , Report ID 1 = Volume HID control
+ 151  0055              ;		       Report ID 2 = Transform Other Data
+ 152  0055              ;====================================================================		
+ 153  0055              		;;vender defined
+ 154  0055  3F06        		DW	03F06H		;//Usage Page(Global)
+ 155  0056  3F00        		DW	03F00H
+ 156  0057  3FFF        		DW	03FFFH		;//Usage Page
+ 157  0058              
+ 158  0058  0109        		DW	00109H		;//Usage(Local 1 bytes)
+ 159  0059  01A1        		DW	001A1H		;//collection(Main)
+ 160  005A              		;input report
+ 161  005A              ;;		DW	03F19H
+ 162  005A              ;;		DW	03FA6H
+ 163  005A              ;;		DW	03F29H		;//Usage(Local)
+ 164  005A              ;;		DW	03FACH
+ 165  005A              ;;		DW	03F15H		;//Global Logical Minimum
+ 166  005A              ;;		DW	03F80H
+ 167  005A              ;;		DW	03F25H		;//Global Logical Maximum
+ 168  005A              ;;		DW	03F7FH		
+ 169  005A              ;;		DW	00875H		;//Global Report Size 8 bits
+ 170  005A              ;;		DW	00795H		;//Global Report Count 7 (field)
+ 171  005A              ;;		DW	00281H		;//Main Input (Data,Variable,Absolute)
+ 172  005A              		;output
+ 173  005A  0015        		DW	00015H		;//LOGICAL MINIMUM (0)
+ 174  005B  3F25        		DW	03F25H
+ 175  005C  3FFF        		DW	03FffH		;//LOGICAL MAXIMUM (FF)
+文件：DES.ASM      盛群编译器版本 2.86 页次4
+
+ 176  005D  0019        		DW	00019H		;//Usage Min (#)
+ 177  005E  0129        		DW	00129H		;//Usage Max (#)
+ 178  005F  0895        		DW	00895H		;//Report Count(8)
+ 179  0060  0875        		DW	00875H		;//Report Size(8)
+ 180  0061  0291        		DW	00291H		;//OUTPUT: (Data, Array)
+ 181  0062  3FC0        		DW	03FC0H		;End Collection
+ 182  0063              	end_hid_report_desc_table:	
+ 183  0063              
+ 184  0063              	string_descriptor:
+ 185  0063              	USBStringLanguageDescription:
+ 186  0063  0304        	    	DW 	00304h          ; Length , Type (3=string)
+ 187  0064  0409            		DW 	00409h          ; Language:  English , Sub-language: US
+ 188  0065              	
+ 189  0065              	imanufacturer_string:	;Vendor Name
+ 190  0065              	USBStringDescription1:	
+ 191  0065  0310 0048   		DW	00310h, 00048h, 0004fh, 0004ch, 00054h, 00045h, 0004bh, 00020h	;HOLTEK		
+            004F 004C 0054 0045 004B 0020
+ 192  006D              	
+ 193  006D              	iproduct_string:	;Product Name
+ 194  006D              	USBStringDescription2:	
+ 195  006D              		;DW	00326h, 00042h, 0002Dh, 0004ch, 00049h, 0004Eh, 0004bh, 00020h	;B-LINK
+ 196  006D  0055 0053   		DW	00055h, 00053h, 00042h, 00020h					;USB
+            0042 0020
+ 197  0071  0041 0075   		DW	00041h, 00075h, 00064h, 00069h, 0006fh, 00020h, 00020h		;Audio
+            0064 0069 006F 0020 0020
+ 198  0078              	
+ 199  0078              	isnumber_string:	;Serial Number
+ 200  0078              	USBStringDescription3:	
+ 201  0078  030A 0038   		DW	0030Ah, 00038h,	00032h, 00031h, 00052h	;821R
+            0032 0031 0052
+ 202  007D              
+ 203  007D              
+ 204  007D              
+ 205  007D              	config_desc_length:
+ 206  007D  0087        		DW	00087H
+ 207  007E              
+ 208  007E              	report_desc_length:
+ 209  007E              		IF	UseReportID
+ 210  007E              		DW	00016H
+ 211  007E              		ELSE
+ 212  007E  0016        		DW	00016H
+ 213  007F              		ENDIF
+ 214  007F              	hid_desc_length:
+ 215  007F  0009        		DW	00009H
+ 216  0080              
+ 217  0080              
+ 218  0080              
+ 219  0080              	 Public		control_read_table
+ 220  0080              	 Public		device_desc_table
+ 221  0080              	 Public		config_desc_table
+ 222  0080              	 Public		end_config_desc_table
+ 223  0080              	 Public		USBStringLanguageDescription
+ 224  0080              	 Public		USBStringDescription1
+ 225  0080              	 Public		USBStringDescription2
+ 226  0080              	 Public		USBStringDescription3
+ 227  0080              	 
+ 228  0080              	 Public		HID_Desc
+ 229  0080              	 Public		hid_report_desc_table
+ 230  0080              	 Public		end_hid_report_desc_table
+ 231  0080              	 
+文件：DES.ASM      盛群编译器版本 2.86 页次5
+
+ 232  0080              	 
+ 233  0080              	 Public		config_desc_length
+ 234  0080              	 Public		hid_desc_length
+ 235  0080              	 Public		report_desc_length
+ 236  0080              
+
+
+        0 Errors

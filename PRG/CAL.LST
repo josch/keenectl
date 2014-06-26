@@ -1,0 +1,114 @@
+文件：CAL.ASM      盛群编译器版本 2.86 页次1
+
+
+   1  0000              ;8 bit unsigned mul  
+   2  0000              unbin_mul_8 proc		;data0*data4---->to1to0 
+   3  0000              	init
+Error(A0010) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 3 : 非预期的符号 'init'
+   4  0000  0F08        	mov	a, 08h
+   5  0001  0000        	mov	count0, a      
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 5 : 语法错误
+   6  0002              rradd:
+   7  0002  0000        	rrc	to1
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 7 : 语法错误
+   8  0003  0000                rrc	data4
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 8 : 语法错误
+   9  0004  380A                snz	[0ah].0   
+  10  0005  2800     R          jmp	rr1		;当前data4.0=0,移位
+  11  0006  0F00                mov	a, data0	;当前data4.0=1,移位相加
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 11 : 未定义的符号 'data0'
+  12  0007  0000                addm	a, to1    
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 12 : 语法错误
+  13  0008              rr1:
+  14  0008  0000        	sdz	count0
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 14 : 语法错误
+  15  0009  2800     R          jmp	rradd    
+  16  000A  0000                rrc	to1
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 16 : 语法错误
+  17  000B  0000                rrc	data4
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 17 : 语法错误
+  18  000C  0F00                mov	a, data4
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 18 : 未定义的符号 'data4'
+  19  000D  0000                mov	to0, a
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 19 : 语法错误
+  20  000E  0003        	ret
+  21  000F              unbin_mul_8 endp
+  22  000F              
+  23  000F              
+  24  000F              ;8 bit unsigned div
+  25  000F              unbin_div_8 proc           	;data0/data4---->data0(to0)---to1  
+  26  000F              	init
+Error(A0010) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 26 : 非预期的符号 'init'
+  27  000F  0F08                mov	a, 08h		;循环次数8
+  28  0010  0000                mov	count0, a 
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 28 : 语法错误
+  29  0011               
+  30  0011  0000                sz	data4		;除数为0则溢出
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 30 : 语法错误
+  31  0012  2800     R          jmp	start0
+  32  0013  2800     R          jmp	over8
+  33  0014              start0: 
+  34  0014  0000        	sz	data0		;被除数为0则结束
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 34 : 语法错误
+  35  0015  2800     R          jmp	div0
+  36  0016  2800     R          jmp	dispa
+  37  0017              div0:   
+  38  0017  340A        	clr	[0Ah].0		;准备左移   
+  39  0018  0000                rlc	data0
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 39 : 语法错误
+  40  0019  0000                rlc	to1		;左移一位结束
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 40 : 语法错误
+  41  001A  0F00                mov	a, to1		;开始部分余数减除数
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 41 : 未定义的符号 'to1'
+文件：CAL.ASM      盛群编译器版本 2.86 页次2
+
+  42  001B  0A00                sub	a, data4
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 42 : 未定义的符号 'data4'
+  43  001C  380A                snz	[0Ah].0        
+  44  001D  2800     R          jmp	next0		;不够减则转移
+  45  001E  0000                mov	to1, a		;够减则商为1
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 45 : 语法错误
+  46  001F  0000                inc	data0
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 46 : 语法错误
+  47  0020              next0:
+  48  0020  0000        	sdz	count0
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 48 : 语法错误
+  49  0021  2800     R          jmp	div0
+  50  0022              dispa:  
+  51  0022  0F00        	mov	a, data0	;显示商
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 51 : 未定义的符号 'data0'
+  52  0023  0000                mov	to0, a                  
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 52 : 语法错误
+  53  0024              ;;	mov	a, data4
+  54  0024              ;;	mov	to1, a 	
+  55  0024  0003              	ret
+  56  0025              over8:
+  57  0025  0003              	ret
+  58  0026              unbin_div_8 endp
+  59  0026              
+  60  0026              
+  61  0026              ;16 bit unsigned div
+  62  0026              unbin_div_16 proc		;data0data1/data4data5---->data1data0(to1to0)---to2to3  
+  63  0026              	init
+Error(A0010) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 63 : 非预期的符号 'init'
+  64  0026  0F10                mov	a, 10h		
+  65  0027  0000                mov	count0, a 
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 65 : 语法错误
+  66  0028  0000                sz	data5		
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 66 : 语法错误
+  67  0029  2800     R          jmp	start16
+  68  002A  0000                sz	data4           
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 68 : 语法错误
+  69  002B  2800     R          jmp	start16
+  70  002C  2800     R          jmp	over16
+  71  002D              start16:
+  72  002D  0000        	sz	data1		
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 72 : 语法错误
+  73  002E  2800     R          jmp	div16
+  74  002F  0000                sz	data0
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM 74 : 语法错误
+Error(A0052) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\CAL.ASM : 错误过多
+
+
+
+        31 Errors

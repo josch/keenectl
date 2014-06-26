@@ -1,0 +1,1444 @@
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次1
+
+
+   1  0000              ;*********************************************************************
+   2  0000              ;	Functin Library
+   3  0000              ;	Author : Ansonku
+   4  0000              ;	EMail  : ansonku@holtek.com.tw
+   5  0000              ;	Date   : 2005/01/11
+   6  0000              ;*********************************************************************
+   7  0000              #include		ht82a821R.inc
+
+
+   8  0000              #include		const.inc
+
+
+   9  0000              ;=====================================================================
+  10  0000              ;	Descriptor Label
+  11  0000              ;=====================================================================
+  12  0000              ;2005/11/01  ClearFeature_Endpoint add Send_Hand_Shake 
+  13  0000              ;
+  14  0000              ;2006/02/16  э Sned_Hand_Shake 磷玻ネぃタ盽 stack 
+  15  0000              ;2006/02/16  э control_read , 磷 descriptor 计┮穦玻ネ拜肈
+  16  0000              ;            璝琌descirptor Ч临Μ in token , ê或 send_hand_shake
+  17  0000              ;
+  18  0000              ;
+  19  0000              ;
+  20  0000              ;
+  21  0000              
+  22  0000              
+  23  0000              
+  24  0000              
+  25  0000              
+  26  0000              extern			control_read_table:NEAR        
+  27  0000              extern			device_desc_table:NEAR         
+  28  0000              extern			config_desc_table:NEAR         
+  29  0000              
+  30  0000              extern			end_config_desc_table:NEAR  
+  31  0000              extern			hid_report_desc_table:NEAR
+  32  0000              extern			end_hid_report_desc_table:NEAR
+  33  0000              
+  34  0000              extern			USBStringLanguageDescription:NEAR
+  35  0000              extern			USBStringDescription1:NEAR
+  36  0000              extern			USBStringDescription2:NEAR
+  37  0000              extern			USBStringDescription3:NEAR
+  38  0000              extern			HID_Desc:NEAR
+  39  0000              
+  40  0000              extern			config_desc_length:NEAR
+  41  0000              extern			hid_desc_length:NEAR
+  42  0000              extern			report_desc_length:NEAR
+  43  0000              
+  44  0000              
+  45  0000              extern			USB_EP0_ISR_END:NEAR
+  46  0000              
+  47  0000              ;=====================================================================
+  48  0000              ;	External Variable
+  49  0000              ;=====================================================================
+  50  0000              extern		FIFO_Size:byte
+  51  0000              extern		FIFO_SendLen:byte
+  52  0000              extern		FIFO_Type:byte
+  53  0000              extern		FIFO_Request:byte
+  54  0000              extern		FIFO_wValueL:byte
+  55  0000              extern		FIFO_wValueH:byte
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次2
+
+  56  0000              extern		FIFO_wIndexL:byte
+  57  0000              extern		FIFO_wIndexH:byte
+  58  0000              extern		FIFO_wLengthL:byte
+  59  0000              extern		FIFO_wLengthH:byte
+  60  0000              
+  61  0000              extern		FIFO_Out1:byte
+  62  0000              extern		FIFO_Out2:byte
+  63  0000              extern		FIFO_Out3:byte
+  64  0000              extern		FIFO_Out4:byte
+  65  0000              extern		FIFO_Out5:byte
+  66  0000              extern		FIFO_Out6:byte
+  67  0000              extern		FIFO_Out7:byte
+  68  0000              extern		FIFO_Out8:byte
+  69  0000              
+  70  0000              extern		USB_Interface:byte
+  71  0000              extern		USB_Interface_Alt:byte
+  72  0000              extern		USB_Configuration:byte
+  73  0000              
+  74  0000              extern		FIFO_ADDR:byte
+  75  0000              
+  76  0000              
+  77  0000              
+  78  0000              extern		Loop_Counter:byte
+  79  0000              extern		Data_Count:byte
+  80  0000              extern		Data_Start:byte
+  81  0000              
+  82  0000              
+  83  0000              extern		nCmdIndex1:byte
+  84  0000              
+  85  0000              extern		VolumeH_Save:byte
+  86  0000              extern		VolumeL_Save:byte
+  87  0000              extern		bFlag_Audio_Mute:bit
+  88  0000              ;modify for Remote Wakeup
+  89  0000              extern    	bRmtWakeup  :bit
+  90  0000              extern    	b_wakeup    :bit
+  91  0000              
+  92  0000              ;=====================================================================
+  93  0000              ;	FIFO Status
+  94  0000              ;=====================================================================
+  95  0000              
+  96  0000              ;FIFO
+  97  0000              extern		FIFO_TEMP:byte
+  98  0000              extern		bFlag_Real_Cmd:bit
+  99  0000              extern		bFlag_FIFO_Ready:bit
+ 100  0000              extern		bFlag_FIFO_LEN0:bit
+ 101  0000              extern		bFlag_RD_HTable:bit
+ 102  0000              extern		bFlag_wait_control_out:bit
+ 103  0000              extern		bFlag_SET_ADDRESS:bit
+ 104  0000              extern		bFlag_SCMD:bit
+ 105  0000              extern		bFlag_Enum_Ready:bit
+ 106  0000              extern		bFlag_SetConfiguration_Ready:bit
+ 107  0000              extern		bFlag_SetInterface_Ready:bit
+ 108  0000              
+ 109  0000              extern		StageOne:NEAR
+ 110  0000              extern		USB_ISR_END:NEAR
+ 111  0000              ;********************************************************************
+ 112  0000              ;		USB	 LIB  
+ 113  0000              ;		1.CHECK FIFOX RD READEY? bFlag_FIFO_Ready = 1:bFlag_FIFO_Ready = 0
+ 114  0000              ;********************************************************************
+ 115  0000              FIFO0_RD_CHECK:
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次3
+
+ 116  0000  0722        		MOV		A,UCC
+ 117  0001  0D07        		OR		A,00000111b
+ 118  0002  0EF8        		AND		A,11111000b
+ 119  0003  00A2        		MOV		UCC,A
+ 120  0004              		
+ 121  0004  0F00        		MOV		A,00000000b
+ 122  0005  2800     R  		JMP		FIFO_CHECK
+ 123  0006              FIFO1_RD_CHECK:
+ 124  0006  0722        		MOV		A,UCC
+ 125  0007  0D07        		OR		A,00000111b
+ 126  0008  0EF9        		AND		A,11111001b
+ 127  0009  00A2        		MOV		UCC,A
+ 128  000A              
+ 129  000A  0F00        		MOV		A,00000000b
+ 130  000B  2800     R  		JMP		FIFO_CHECK
+ 131  000C              FIFO2_RD_CHECK:
+ 132  000C  0722        		MOV		A,UCC
+ 133  000D  0D07        		OR		A,00000111b
+ 134  000E  0EFA        		AND		A,11111010b
+ 135  000F  00A2        		MOV		UCC,A
+ 136  0010              
+ 137  0010  0F00        		MOV		A,00000000b
+ 138  0011  2800     R  		JMP		FIFO_CHECK
+ 139  0012              FIFO3_RD_CHECK:
+ 140  0012  0722        		MOV		A,UCC
+ 141  0013  0D07        		OR		A,00000111b
+ 142  0014  0EFB        		AND		A,11111011b
+ 143  0015  00A2        		MOV		UCC,A
+ 144  0016              		
+ 145  0016  0F00        		MOV		A,00000000b
+ 146  0017  2800     R  		JMP		FIFO_CHECK
+ 147  0018              FIFO4_RD_CHECK:
+ 148  0018  0722        		MOV		A,UCC
+ 149  0019  0D07        		OR		A,00000111b
+ 150  001A  0EFC        		AND		A,11111100b
+ 151  001B  00A2        		MOV		UCC,A
+ 152  001C              		
+ 153  001C  0F00        		MOV		A,00000000b
+ 154  001D  2800     R  		JMP		FIFO_CHECK
+ 155  001E              
+ 156  001E              FIFO5_RD_CHECK:
+ 157  001E  0722        		MOV		A,UCC
+ 158  001F  0D07        		OR		A,00000111b
+ 159  0020  0EFD        		AND		A,11111101b
+ 160  0021  00A2        		MOV		UCC,A
+ 161  0022              		
+ 162  0022  0F00        		MOV		A,00000000b
+ 163  0023  2800     R  		JMP		FIFO_CHECK
+ 164  0024              ;********************************************************************
+ 165  0024              ;		USB	 LIB  
+ 166  0024              ;		1.CHECK FIFOX WR READEY ?  bFlag_FIFO_Ready = 1:bFlag_FIFO_Ready = 0
+ 167  0024              ;********************************************************************
+ 168  0024              
+ 169  0024              ;LEN0 ready to write??
+ 170  0024              LEN0_WR_CHECK:
+ 171  0024              ;CHECK FIFOX ready to write?
+ 172  0024              FIFO0_WR_CHECK:
+ 173  0024  0722        		MOV		A,UCC
+ 174  0025  0D07        		OR		A,00000111b
+ 175  0026  0EF8        		AND		A,11111000b
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次4
+
+ 176  0027  00A2        		MOV		UCC,A
+ 177  0028              		
+ 178  0028  0F02        		MOV		A,00000010b
+ 179  0029  2800     R  		JMP		FIFO_CHECK
+ 180  002A              FIFO1_WR_CHECK:
+ 181  002A  0722        		MOV		A,UCC
+ 182  002B  0D07        		OR		A,00000111b
+ 183  002C  0EF9        		AND		A,11111001b
+ 184  002D  00A2        		MOV		UCC,A
+ 185  002E              
+ 186  002E  0F02        		MOV		A,00000010b
+ 187  002F  2800     R  		JMP		FIFO_CHECK
+ 188  0030              FIFO2_WR_CHECK:
+ 189  0030  0722        		MOV		A,UCC
+ 190  0031  0D07        		OR		A,00000111b
+ 191  0032  0EFA        		AND		A,11111010b
+ 192  0033  00A2        		MOV		UCC,A
+ 193  0034              
+ 194  0034  0F02        		MOV		A,00000010b
+ 195  0035  2800     R  		JMP		FIFO_CHECK
+ 196  0036              FIFO3_WR_CHECK:
+ 197  0036  0722        		MOV		A,UCC
+ 198  0037  0D07        		OR		A,00000111b
+ 199  0038  0EFB        		AND		A,11111011b
+ 200  0039  00A2        		MOV		UCC,A
+ 201  003A              		
+ 202  003A  0F02        		MOV		A,00000010b
+ 203  003B  2800     R  		JMP		FIFO_CHECK
+ 204  003C              FIFO4_WR_CHECK:
+ 205  003C  0722        		MOV		A,UCC
+ 206  003D  0D07        		OR		A,00000111b
+ 207  003E  0EFC        		AND		A,11111100b
+ 208  003F  00A2        		MOV		UCC,A
+ 209  0040              		
+ 210  0040  0F02        		MOV		A,00000010b
+ 211  0041  2800     R  		JMP		FIFO_CHECK
+ 212  0042              
+ 213  0042              FIFO5_WR_CHECK:
+ 214  0042  0722        		MOV		A,UCC
+ 215  0043  0D07        		OR		A,00000111b
+ 216  0044  0EFD        		AND		A,11111101b
+ 217  0045  00A2        		MOV		UCC,A
+ 218  0046              		
+ 219  0046  0F02        		MOV		A,00000010b
+ 220  0047  2800     R  		JMP		FIFO_CHECK
+ 221  0048              
+ 222  0048              FIFO_CHECK:
+ 223  0048  0001        		clr wdt
+ 224  0049  0080     E  		MOV		FIFO_TEMP,A
+ 225  004A  0F26        		MOV		A,USB_MISC
+ 226  004B  0083        		MOV		MP1,A
+ 227  004C  0702        		MOV		A,R1
+ 228  004D  0EF8        		AND		A,11111000b
+ 229  004E  0500     E  		OR		A,FIFO_TEMP
+ 230  004F  0082        		MOV		R1,A
+ 231  0050  2000     R  		CALL		Delay_3us
+ 232  0051  3002        		SET		R1.@MISC_REQ			;set request
+ 233  0052  2000     R  		CALL		Delay_28us
+ 234  0053  3000     E  		SET		bFlag_FIFO_Ready
+ 235  0054  3B02        		SNZ		R1.@MISC_Ready
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次5
+
+ 236  0055  3400     E  		CLR		bFlag_FIFO_Ready	;if MISC.Ready = 1 -> bFlag_FIFO_Ready = 1
+ 237  0056  3000     E  		SET		bFlag_FIFO_LEN0
+ 238  0057  3B82        		SNZ		R1.@MISC_LEN0
+ 239  0058  3400     E  		CLR		bFlag_FIFO_LEN0
+ 240  0059              
+ 241  0059              		;;SZ		bFlag_FIFO_Ready
+ 242  0059  3426        		clr		MISC.@MISC_REQ
+ 243  005A  0001        		clr wdt
+ 244  005B  0003        		RET
+ 245  005C              
+ 246  005C              
+ 247  005C              ReadLen0:
+ 248  005C  0F28        		MOV		A,USB_FIFO0
+ 249  005D  0083        		MOV		MP1,A
+ 250  005E  0702        		MOV		A,R1
+ 251  005F  0000        		NOP
+ 252  0060  2800     R  		JMP		Read_FIFO_END
+ 253  0061              Read_FIFO0:
+ 254  0061  0F08        		MOV		A,USB_FIFO0_SIZE
+ 255  0062  0080     E  		MOV		FIFO_SIZE,A
+ 256  0063  0F28        		MOV		A,USB_FIFO0
+ 257  0064  2800     R  		JMP		Read_FIFO
+ 258  0065              Read_FIFO1:
+ 259  0065  0F08        		MOV		A,USB_FIFO1_SIZE
+ 260  0066  0080     E  		MOV		FIFO_SIZE,A
+ 261  0067  0F29        		MOV		A,USB_FIFO1
+ 262  0068  2800     R  		JMP		Read_FIFO
+ 263  0069              Read_FIFO2:
+ 264  0069  0F08        		MOV		A,USB_FIFO2_SIZE
+ 265  006A  0080     E  		MOV		FIFO_SIZE,A
+ 266  006B  0F2A        		MOV		A,USB_FIFO2
+ 267  006C  2800     R  		JMP		Read_FIFO
+ 268  006D              Read_FIFO3:
+ 269  006D  0F08        		MOV		A,USB_FIFO3_SIZE
+ 270  006E  0080     E  		MOV		FIFO_SIZE,A
+ 271  006F  0F2B        		MOV		A,USB_FIFO3
+ 272  0070  2800     R  		JMP		Read_FIFO
+ 273  0071              Read_FIFO4:
+ 274  0071  0F08        		MOV		A,USB_FIFO4_SIZE
+ 275  0072  0080     E  		MOV		FIFO_SIZE,A
+ 276  0073  0F2C        		MOV		A,USB_FIFO4
+ 277  0074  2800     R  		JMP		Read_FIFO
+ 278  0075              Read_FIFO5:
+ 279  0075  0F08        		MOV		A,USB_FIFO5_SIZE
+ 280  0076  0080     E  		MOV		FIFO_SIZE,A
+ 281  0077  0F2D        		MOV		A,USB_FIFO5
+ 282  0078  2800     R  		JMP		Read_FIFO
+ 283  0079              
+ 284  0079              Read_FIFO:
+ 285  0079  3026        		SET		MISC.@MISC_REQ
+ 286  007A              
+ 287  007A  0080     E  		MOV		FIFO_TEMP,A		;FIFO_TEMP SAVE FIFOX ADDRESS
+ 288  007B  1F00     E  		CLR		FIFO_SendLen
+ 289  007C  0F00     E  		MOV		A,OFFSET FIFO_Type
+ 290  007D  0081        		MOV		MP0,A
+ 291  007E              Read_FIFO_Loop:
+ 292  007E  0700     E  		MOV		A,FIFO_TEMP
+ 293  007F  0083        		MOV		MP1,A
+ 294  0080  0702        		MOV		A,R1
+ 295  0081  0080        		MOV		R0,A
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次6
+
+ 296  0082  1480     E  		INC		FIFO_SendLen
+ 297  0083  1481        		INC		MP0
+ 298  0084  0700     E  		MOV		A,FIFO_SIZE
+ 299  0085  0400     E  		XOR		A,FIFO_SendLen
+ 300  0086  3D0A        		SZ		Z				;1=FIFO_SIZE=FIFO_SendLen
+ 301  0087  2800     R  		JMP		Read_FIFO_End
+ 302  0088  0F26        		MOV		A,USB_MISC
+ 303  0089  0083        		MOV		MP1,A
+ 304  008A  2000     R  		CALL		Delay_28us
+ 305  008B  3F02        		SZ		R1.@MISC_Ready
+ 306  008C  2800     R  		JMP		Read_FIFO_LOOP
+ 307  008D  2800     R  		JMP		Read_FIFO_End
+ 308  008E              
+ 309  008E              Send_Hand_Shake:
+ 310  008E              Send_Hand_Shake_wait:
+ 311  008E              		; protect die loop
+ 312  008E  2000     R  		call		Check_Real_Cmd
+ 313  008F  3C00     E  		sz		bFlag_Real_Cmd
+ 314  0090              		;jmp		USB_EP0_ISR_END
+ 315  0090  0003        		ret				;modify by 2006-02-16
+ 316  0091              
+ 317  0091  2000     R  		CALL		FIFO0_WR_CHECK
+ 318  0092  3800     E  		SNZ		bFlag_FIFO_Ready             ; acai remark 2007-1-23
+ 319  0093  2800     R  		JMP		Send_Hand_Shake_wait
+ 320  0094              
+ 321  0094  3026        		set		MISC.@MISC_REQ
+ 322  0095              WriteLen0:
+ 323  0095              Write_FIFO_OK:
+ 324  0095              Read_FIFO_End:
+ 325  0095  0F26        		MOV		A,USB_MISC
+ 326  0096  0083        		MOV		MP1,A
+ 327  0097  0F02        		MOV		A,(01H SHL @MISC_TX)		;Change TX State
+ 328  0098              		;CLR		INTC0.0
+ 329  0098  0482        		XORM		A,R1
+ 330  0099  2000     R  		CALL		Delay_3us
+ 331  009A  3402        		CLR		R1.@MISC_REQ
+ 332  009B              		;SET		INTC0.0
+ 333  009B  0003        		RET
+ 334  009C              
+ 335  009C              ;============================================================
+ 336  009C              ;Function:Write FIFOx from FIFO_OUTx
+ 337  009C              ;============================================================
+ 338  009C              Write_FIFO0:
+ 339  009C  0F28        		MOV		A,USB_FIFO0
+ 340  009D  2800     R  		JMP		Write_FIFO
+ 341  009E              Write_FIFO1:
+ 342  009E  0F29        		MOV		A,USB_FIFO1
+ 343  009F  2800     R  		JMP		Write_FIFO
+ 344  00A0              Write_FIFO2:
+ 345  00A0  0F2A        		MOV		A,USB_FIFO2
+ 346  00A1  2800     R  		JMP		Write_FIFO
+ 347  00A2              Write_FIFO3:
+ 348  00A2  0F2B        		MOV		A,USB_FIFO3
+ 349  00A3  2800     R  		JMP		Write_FIFO
+ 350  00A4              Write_FIFO4:
+ 351  00A4  0F2C        		MOV		A,USB_FIFO4
+ 352  00A5  2800     R  		JMP		Write_FIFO
+ 353  00A6              Write_FIFO5:
+ 354  00A6  0F2D        		MOV		A,USB_FIFO5
+ 355  00A7  2800     R  		JMP		Write_FIFO
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次7
+
+ 356  00A8              
+ 357  00A8              Write_FIFO:
+ 358  00A8  0001        		clr wdt
+ 359  00A9  3026        		SET		MISC.@MISC_REQ
+ 360  00AA              
+ 361  00AA  0080     E  		MOV		FIFO_TEMP,A		;FIFO NO Address
+ 362  00AB  0F00     E  		MOV		A,OFFSET FIFO_OUT1
+ 363  00AC  0081        		MOV		MP0,A
+ 364  00AD              Write_FIFO_Loop:
+ 365  00AD  0001        		clr wdt
+ 366  00AE  0700     E  		MOV		A,FIFO_SendLen
+ 367  00AF  0C00        		XOR		A,00H
+ 368  00B0  3D0A        		SZ		Z
+ 369  00B1  2800     R  		JMP		Write_FIFO_End
+ 370  00B2              		
+ 371  00B2  0700     E  		MOV		A,FIFO_TEMP
+ 372  00B3  0083        		MOV		MP1,A
+ 373  00B4  0700        		MOV		A,R0
+ 374  00B5  0082        		MOV		R1,A
+ 375  00B6  1580     E  		DEC		FIFO_SendLen
+ 376  00B7  0700     E  		MOV		A,FIFO_SendLen
+ 377  00B8  0C00        		XOR		A,00H
+ 378  00B9  3D0A        		SZ		Z
+ 379  00BA  2800     R  		JMP		Write_FIFO_End		;FIFO_SendLen=0 肚Ч
+ 380  00BB  1481        		INC		MP0
+ 381  00BC  0F26        		MOV		A,USB_MISC
+ 382  00BD  0083        		MOV		MP1,A
+ 383  00BE  2000     R  		call		Delay_28us
+ 384  00BF  3F02        		SZ		R1.@MISC_Ready
+ 385  00C0  2800     R  		JMP		Write_FIFO_Loop
+ 386  00C1              Write_FIFO_End:
+ 387  00C1  0001        		clr wdt
+ 388  00C2  2800     R  		JMP		Write_FIFO_OK
+ 389  00C3              
+ 390  00C3              
+ 391  00C3              get_descriptor_length:
+ 392  00C3  0001        		clr wdt
+ 393  00C4  0700     E  		MOV		A,FIFO_WLENGTHH
+ 394  00C5  0C00        		XOR		A,0
+ 395  00C6  390A        		SNZ		Z
+ 396  00C7  2800     R  		JMP		use_actual_length
+ 397  00C8  0700     E  		MOV		A,FIFO_WLENGTHL
+ 398  00C9  0C00        		XOR		A,0
+ 399  00CA  3D0A        		SZ		Z
+ 400  00CB  2800     R  		JMP		use_actual_length
+ 401  00CC  0700     E  		MOV		A,FIFO_WLENGTHL
+ 402  00CD  0200     E  		SUB		A,data_count
+ 403  00CE  3C0A        		SZ		C			;if(FIFO_LENGTHL>data_count) c=1
+ 404  00CF  2800     R  		JMP		use_actual_length
+ 405  00D0  0700     E  		MOV		A,FIFO_WLENGTHL
+ 406  00D1  0080     E  		MOV		data_count,A
+ 407  00D2              use_actual_length:
+ 408  00D2  0003        		RET
+ 409  00D3              ;===============================================================
+ 410  00D3              ;		Function : Control_read
+ 411  00D3              ;		Purpose  : Performs the control read operation as
+ 412  00D3              ;				   defined by the USB specification
+ 413  00D3              ;				   setup-in-in-in-....-out
+ 414  00D3              ;		data_start:must be set to the descriptors info as an offset
+ 415  00D3              ;				   from the beginning of the control read table
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次8
+
+ 416  00D3              ;				   data count holds the
+ 417  00D3              ;		data_count:must beset to the size of the descriptor
+ 418  00D3              ;		bFlag_RD_HTable==1 ==> Must be read Hight Bytes
+ 419  00D3              ;		TBLP	  :Table Index
+ 420  00D3              ;===============================================================
+ 421  00D3              control_read:
+ 422  00D3  0001        		clr wdt
+ 423  00D4  0700     E  		MOV		A,data_start
+ 424  00D5  0087        		MOV		TBLP,A
+ 425  00D6              control_read_data_stage:
+ 426  00D6  0001        		clr wdt
+ 427  00D7  0F00        		MOV		A,00H
+ 428  00D8  0080     E  		MOV		Loop_Counter,A
+ 429  00D9  0080     E  		MOV		FIFO_SendLen,A
+ 430  00DA              
+ 431  00DA              
+ 432  00DA  3EA6        		SZ		MISC.@MISC_SCMD
+ 433  00DB  2800     R  		JMP		control_read_status_stage_end
+ 434  00DC  0001        		clr wdt
+ 435  00DD              		
+ 436  00DD  0F00     E  		MOV		A,OFFSET FIFO_TYPE
+ 437  00DE  0081        		MOV		MP0,A
+ 438  00DF              
+ 439  00DF  0700     E  		MOV		A,data_count
+ 440  00E0  0C00        		XOR		A,00H
+ 441  00E1  3D0A        		SZ		Z
+ 442  00E2  2800     R  		JMP		dma_load_done			;A=00H
+ 443  00E3              
+ 444  00E3              dma_load_loop:
+ 445  00E3  0001        		clr wdt
+ 446  00E4  3800     E  		SNZ		bFlag_RD_HTable
+ 447  00E5  2800     R  		JMP		Read_Low_Bytes
+ 448  00E6              Read_High_Bytes:
+ 449  00E6  0001        		clr wdt
+ 450  00E7  3400     E  		CLR		bFlag_RD_HTable
+ 451  00E8  1D80        		TABRDL		R0
+ 452  00E9  1487        		INC		TBLP
+ 453  00EA  1480     E  		INC		data_start
+ 454  00EB  0708        		MOV		A,TBLH
+ 455  00EC  0E3F        		AND		A,00111111b
+ 456  00ED  0080        		MOV		R0,A
+ 457  00EE  0C3F        		XOR		A,3FH
+ 458  00EF  3D0A        		SZ		Z
+ 459  00F0  2800     R  		JMP		dma_load_loop
+ 460  00F1              
+ 461  00F1  2800     R  		JMP		Check_Read_Length
+ 462  00F2              
+ 463  00F2              Read_Low_Bytes:
+ 464  00F2  0001        		clr wdt
+ 465  00F3  3000     E  		SET		bFlag_RD_HTable
+ 466  00F4  1D80        		TABRDL		R0
+ 467  00F5  0700        		MOV		A,R0
+ 468  00F6              Check_Read_Length:
+ 469  00F6  0001        		clr wdt
+ 470  00F7  1481        		INC		MP0
+ 471  00F8  1480     E  		INC		loop_counter
+ 472  00F9  1480     E  		INC		FIFO_SendLen
+ 473  00FA  1580     E  		DEC		data_count
+ 474  00FB  3D0A        		SZ		Z
+ 475  00FC  2800     R  		JMP		wait_control_read
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次9
+
+ 476  00FD  0700     E  		MOV		A,loop_counter
+ 477  00FE  0C08        		XOR		A,EP0_FIFO_SIZE
+ 478  00FF  390A        		SNZ		Z
+ 479  0100  2800     R  		JMP		dma_load_loop
+ 480  0101  2800     R  		jmp		wait_control_read
+ 481  0102              dma_load_done:
+ 482  0102  0001        		clr wdt
+ 483  0103              		;SZ		MISC.@MISC_SCMD
+ 484  0103              		;JMP		control_read_status_stage_end
+ 485  0103  2000     R  		CALL		Send_Hand_Shake
+ 486  0104  2800     R  		jmp		control_read_status_stage_end		
+ 487  0105              
+ 488  0105              wait_control_read:
+ 489  0105  0001        		clr wdt
+ 490  0106  2000     R  		call		Check_Real_Cmd
+ 491  0107  3C00     E  		sz		bFlag_Real_Cmd
+ 492  0108  2800     R  		jmp		control_read_status_stage_end		
+ 493  0109              		
+ 494  0109  0001        		clr wdt
+ 495  010A  2000     R  		CALL		FIFO0_WR_CHECK
+ 496  010B  3800     E  		SNZ		bFlag_FIFO_Ready
+ 497  010C  2800     R  		JMP		wait_control_read	;wait FIFO0 Ready
+ 498  010D  2000     R  		CALL		Write_FIFO0
+ 499  010E              control_read_status_stage_end:	
+ 500  010E  0001        		clr wdt			
+ 501  010F  0000        		NOP
+ 502  0110  0003        		RET		
+ 503  0111              
+ 504  0111              
+ 505  0111              ;-----------------------------------------------------------
+ 506  0111              ; Check_Real_Cmd : if have new cmd , set bFlag_Real_Cmd else clr bFlag_Real_Cmd
+ 507  0111              ;-----------------------------------------------------------
+ 508  0111              Check_Real_Cmd:
+ 509  0111  0001        		clr wdt
+ 510  0112  3400     E  		clr		bFlag_Real_Cmd
+ 511  0113  3EA6        		SZ		MISC.@MISC_SCMD
+ 512  0114  3000     E  		set		bFlag_Real_Cmd
+ 513  0115  3FA6        		SZ		MISC.@MISC_LEN0
+ 514  0116  3000     E  		set		bFlag_Real_Cmd
+ 515  0117  0003        		RET
+ 516  0118              
+ 517  0118              ;***************************************************************
+ 518  0118              ;		USB	 Stage3 
+ 519  0118              ;		Process the request
+ 520  0118              ;***************************************************************
+ 521  0118              ;Set the device address to the wValue in the SETUP packet at the completion
+ 522  0118              ;of the current transaction
+ 523  0118              ;-----------------------------------------------------------
+ 524  0118              ; Set Address
+ 525  0118              ;-----------------------------------------------------------
+ 526  0118              SetAddress:
+ 527  0118  0001        		clr wdt
+ 528  0119  0700     E  		MOV		A,FIFO_WVALUEL		;save address to FIFO_ADDR
+ 529  011A  0080     E  		MOV		FIFO_ADDR,A
+ 530  011B  0080     E  		MOV		FIFO_TEMP,A		
+ 531  011C              
+ 532  011C  0F25        		MOV		A,USB_SIES
+ 533  011D  0083        		MOV		MP1,A
+ 534  011E  0F01        		MOV		A,00000001b
+ 535  011F  0582        		ORM		A,R1
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次10
+
+ 536  0120  1800     E  		RLA		FIFO_TEMP
+ 537  0121  0EFE        		AND		A,0FEH
+ 538  0122  0080     E  		MOV		FIFO_TEMP,A
+ 539  0123              		
+ 540  0123  0F23        		MOV		A,USB_AWR
+ 541  0124  0083        		MOV		MP1,A
+ 542  0125  0700     E  		MOV		A,FIFO_TEMP
+ 543  0126  0082        		MOV		R1,A
+ 544  0127  0000        		NOP
+ 545  0128              
+ 546  0128  2000     R  		CALL		Send_Hand_Shake		;send a handshake with host
+ 547  0129              		
+ 548  0129  3000     E  		SET		bFlag_Set_Address
+ 549  012A              		;;RET					;for test
+ 550  012A  2800     E  		JMP		USB_EP0_ISR_END
+ 551  012B              
+ 552  012B              ;-----------------------------------------------------------
+ 553  012B              ; Set Configuration
+ 554  012B              ;-----------------------------------------------------------
+ 555  012B              SetConfiguration:
+ 556  012B  0001        		clr wdt
+ 557  012C  339C        		set		USVC.7			;unmute		
+ 558  012D              
+ 559  012D  0700     E  		MOV		A,FIFO_WVALUEL	
+ 560  012E  0080     E  		MOV		USB_Configuration,A
+ 561  012F  1F24        		CLR		STALL
+ 562  0130              		;MOV		A,USB_STALL
+ 563  0130              		;MOV		MP1,A
+ 564  0130              		;CLR 		R1					;not stall
+ 565  0130  3000     E  		set		bFlag_SetConfiguration_Ready
+ 566  0131              SetConfiguration_wait:
+ 567  0131  2000     R  		CALL		Send_Hand_Shake
+ 568  0132  2800     E  		JMP		USB_EP0_ISR_END
+ 569  0133              
+ 570  0133              ;-----------------------------------------------------------
+ 571  0133              ; Set Interface
+ 572  0133              ;-----------------------------------------------------------
+ 573  0133              SetInterface:
+ 574  0133  0001        		clr wdt
+ 575  0134  0700     E  		MOV		A,FIFO_WVALUEL
+ 576  0135  0080     E  		MOV		USB_Interface_Alt,A
+ 577  0136  0700     E  		MOV		A,FIFO_WINDEXL
+ 578  0137  0080     E  		MOV		USB_Interface,A
+ 579  0138  3000     E  		set		bFlag_SetInterface_Ready
+ 580  0139  3014        		set		USB_LED_ON
+ 581  013A              SetInterface_wait:
+ 582  013A  2000     R  		CALL		Send_Hand_Shake
+ 583  013B  2800     E  		JMP		USB_EP0_ISR_END
+ 584  013C              
+ 585  013C              ;-----------------------------------------------------------
+ 586  013C              ; Get Interface
+ 587  013C              ;-----------------------------------------------------------
+ 588  013C              GetInterface:
+ 589  013C  0001        		clr wdt
+ 590  013D  0700     E  		mov		A,USB_Interface_Alt
+ 591  013E  0080     E  		mov		FIFO_OUT1,A
+ 592  013F              		
+ 593  013F  0F01        		mov		A,01H
+ 594  0140  0080     E  		mov		FIFO_SendLen,A
+ 595  0141              		
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次11
+
+ 596  0141              GetInterface_Loop:
+ 597  0141  0001        		clr wdt
+ 598  0142  2000     R  		call		Check_Real_Cmd
+ 599  0143  3C00     E  		sz		bFlag_Real_Cmd
+ 600  0144  2800     R  		jmp		GetInterface_End
+ 601  0145  0001        		clr wdt
+ 602  0146  2000     R  		call		FIFO0_WR_CHECK
+ 603  0147  3800     E  		SNZ		bFlag_FIFO_Ready
+ 604  0148  2800     R  		JMP		GetInterface_Loop
+ 605  0149              
+ 606  0149  2000     R  		CALL		Write_FIFO0
+ 607  014A              		
+ 608  014A              GetInterface_End:
+ 609  014A  2800     E  		JMP		USB_EP0_ISR_END
+ 610  014B              
+ 611  014B              ;-----------------------------------------------------------
+ 612  014B              ; Get Status
+ 613  014B              ; For Get Status (DEVICE,INTERFACE,ENDPOINT) , if self-powered and remote wakeup need to modify
+ 614  014B              ; return 2 bytes (00 00)
+ 615  014B              ;-----------------------------------------------------------
+ 616  014B              GetStatus:
+ 617  014B  0001        		clr wdt	
+ 618  014C  0F02        		mov		a,02H
+ 619  014D  0080     E  		mov		FIFO_SendLen,a
+ 620  014E              		
+ 621  014E              		;Modify for Remote Wakeup		
+ 622  014E  0F02        		mov		a,02H
+ 623  014F  3800     E  		snz   		bRmtWakeup
+ 624  0150              		;------------------------
+ 625  0150  0F00        		mov		a,00H
+ 626  0151  0080     E  		mov		FIFO_Out1,a
+ 627  0152  1F00     E  		clr		FIFO_Out2
+ 628  0153              		
+ 629  0153              GetStatus_Loop:
+ 630  0153  0001        		clr wdt	
+ 631  0154  2000     R  		call		Check_Real_Cmd
+ 632  0155  3C00     E  		sz		bFlag_Real_Cmd
+ 633  0156  2800     R  		jmp		GetStatus_End
+ 634  0157  0001        		clr wdt	
+ 635  0158              		
+ 636  0158  2000     R  		call		FIFO0_WR_CHECK
+ 637  0159  3800     E  		SNZ		bFlag_FIFO_Ready
+ 638  015A  2800     R  		JMP		GetStatus_Loop
+ 639  015B              
+ 640  015B  2000     R  		CALL		Write_FIFO0
+ 641  015C              		
+ 642  015C              GetStatus_End:
+ 643  015C  2800     E  		JMP		USB_EP0_ISR_END
+ 644  015D              
+ 645  015D              ;-----------------------------------------------------------
+ 646  015D              ; Get Status (Endpoint)
+ 647  015D              ;-----------------------------------------------------------
+ 648  015D              ;-----------------------------------------------------------
+ 649  015D              ; Get Status (Interface)
+ 650  015D              ; return 2 bytes (00 00)
+ 651  015D              ;-----------------------------------------------------------
+ 652  015D              ;Modify for Remote Wakeup
+ 653  015D              GetStatus_Interface:
+ 654  015D  0001        		clr wdt	
+ 655  015E  0F02        		mov		a,02H
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次12
+
+ 656  015F  0080     E  		mov		FIFO_SendLen,a
+ 657  0160              		
+ 658  0160              		
+ 659  0160  0F00        		mov		a,00H
+ 660  0161  0080     E  		mov		FIFO_Out1,a
+ 661  0162  1F00     E  		clr		FIFO_Out2
+ 662  0163              		
+ 663  0163              GetStatus_Inerface_Loop:
+ 664  0163  0001        		clr wdt	
+ 665  0164  2000     R  		call		Check_Real_Cmd
+ 666  0165  3C00     E  		sz		bFlag_Real_Cmd
+ 667  0166  2800     R  		jmp		GetStatus_End
+ 668  0167  0001        		clr wdt	
+ 669  0168              		
+ 670  0168  2000     R  		call		FIFO0_WR_CHECK
+ 671  0169  3800     E  		SNZ		bFlag_FIFO_Ready
+ 672  016A  2800     R  		JMP		GetStatus_Inerface_Loop
+ 673  016B              
+ 674  016B  2000     R  		CALL		Write_FIFO0
+ 675  016C              		
+ 676  016C              GetStatus_Inerface_Loop_End:
+ 677  016C  2800     E  		JMP		USB_EP0_ISR_END
+ 678  016D              ;-----------------------------------------------------------
+ 679  016D              ; Get Status (Endpoint)
+ 680  016D              ;-----------------------------------------------------------
+ 681  016D              GetStatus_Endpoint:
+ 682  016D  0001        		clr wdt
+ 683  016E  0F02        		mov		a,02H
+ 684  016F  0080     E  		mov		FIFO_SendLen,a
+ 685  0170              
+ 686  0170  0F7F        		mov		a,07FH
+ 687  0171  0600     E  		and		a,FIFO_wIndexL
+ 688  0172              		
+ 689  0172  2000     R  		call		GetPipeBit
+ 690  0173  0080     E  		mov		FIFO_TEMP,a
+ 691  0174  0724        		mov		a,STALL
+ 692  0175  0600     E  		and		a,FIFO_TEMP
+ 693  0176  0080     E  		mov		FIFO_TEMP,a
+ 694  0177              
+ 695  0177  1F00     E  		clr		FIFO_Out1		
+ 696  0178  1080     E  		sz		FIFO_TEMP
+ 697  0179  3000     E  		set		FIFO_Out1.0
+ 698  017A              		
+ 699  017A  1F00     E  		clr		FIFO_Out2
+ 700  017B              		
+ 701  017B  2800     R  		jmp		GetStatus_Loop
+ 702  017C              		
+ 703  017C              
+ 704  017C              GetStatus_Endpoint_End:
+ 705  017C  2800     E  		JMP		USB_EP0_ISR_END
+ 706  017D              ;-----------------------------------------------------------
+ 707  017D              ; Clear Feature : The HT82A822R return ACK without ERROR
+ 708  017D              ; bmRequest: 00  	Device
+ 709  017D              ;	     02	 	EndPoint
+ 710  017D              ; bRequest   01  	CLEAR_FEATURE
+ 711  017D              ; wValue     0000 	clear ENDPOINT0 HALT
+ 712  017D              ;	     0001	clear REMOTE_WAKEUP
+ 713  017D              ; wIndex     0000
+ 714  017D              ; wLength    0000
+ 715  017D              ;-----------------------------------------------------------
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次13
+
+ 716  017D              ClearFeature:
+ 717  017D              ;;----2007-01-10 for Vista DTM----
+ 718  017D  0700     E      mov     a,FIFO_wValueL
+ 719  017E  0C01            xor		a,01H
+ 720  017F  390A        		snz		z
+ 721  0180  2800     R  		JMP		SendStall0
+ 722  0181                  ;set     b_wakeup
+ 723  0181                  ;clr     bRmtWakeup
+ 724  0181              ;;------------------------------    
+ 725  0181  0001        		clr wdt
+ 726  0182              		;Modify for Remote Wakeup	
+ 727  0182  3000     E  		set     b_wakeup
+ 728  0183  3400     E      		clr     bRmtWakeup 
+ 729  0184                  		;-----------------------
+ 730  0184  2000     R  		CALL		Send_Hand_Shake		
+ 731  0185              ClearFeature_Loop:
+ 732  0185              ClearFeature_End:
+ 733  0185  2800     E  		JMP		USB_EP0_ISR_END
+ 734  0186              ;-----------------------------------------------------------
+ 735  0186              ; Clear Feature (Endpoint)
+ 736  0186              ;-----------------------------------------------------------
+ 737  0186              ClearFeature_Endpoint:
+ 738  0186  0001        		clr wdt
+ 739  0187              		
+ 740  0187              		
+ 741  0187  3800     E  		snz		bFlag_SetConfiguration_Ready
+ 742  0188  2800     R  		JMP		SendStall0
+ 743  0189              
+ 744  0189  0F7F        		mov		a,07FH
+ 745  018A  0600     E  		and		a,FIFO_wIndexL
+ 746  018B              
+ 747  018B  2000     R  		call		GetPipeBit
+ 748  018C              		
+ 749  018C  0080     E  		mov		FIFO_TEMP,a
+ 750  018D  0180     E  		CPL		FIFO_TEMP
+ 751  018E  0724        		mov		a,STALL
+ 752  018F  0600     E  		AND		a,FIFO_TEMP
+ 753  0190  00A4        		mov		STALL,a
+ 754  0191              
+ 755  0191  2000     R  		CALL		Send_Hand_Shake		
+ 756  0192              		
+ 757  0192              		
+ 758  0192              ClearFeature_Endpoint_End:
+ 759  0192  2800     E  		JMP		USB_EP0_ISR_END		
+ 760  0193              
+ 761  0193              ;-----------------------------------------------------------
+ 762  0193              ; Set Feature
+ 763  0193              ;-----------------------------------------------------------
+ 764  0193              SetFeature:
+ 765  0193              ;;----2007-01-10 for Vista DTM----
+ 766  0193  0700     E      		mov   		a,FIFO_wValueH
+ 767  0194  0C00            		xor		a,00H
+ 768  0195  3D0A        		sz		z
+ 769  0196  2800     R  		JMP		SetFeature_1
+ 770  0197              		
+ 771  0197  0700     E      		mov		a,FIFO_wValueH
+ 772  0198  0A81        		sub		a,81H		;target-now
+ 773  0199  380A        		snz		C
+ 774  019A  2800     R  		jmp		SendStall0	;<81H
+ 775  019B              		                    ;>=81H
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次14
+
+ 776  019B  0700     E  		mov		a,FIFO_wValueH
+ 777  019C  0A84        		sub		a,84H		;target-now
+ 778  019D  3C0A        		sz		C
+ 779  019E  2800     R  		jmp		SendStall0	;>=84H
+ 780  019F              		
+ 781  019F  0700     E  		mov     	a,FIFO_wValueL
+ 782  01A0  0C00            		xor		a,00H
+ 783  01A1  390A        		snz		z
+ 784  01A2  2800     R  		JMP		SendStall0
+ 785  01A3  2800     R  		jmp		SetFeature_2		
+ 786  01A4              		
+ 787  01A4              SetFeature_1:    
+ 788  01A4  0700     E     		mov     	a,FIFO_wValueL
+ 789  01A5  0C01            		xor		a,01H
+ 790  01A6  390A        		snz		z
+ 791  01A7  2800     R  		JMP		SendStall0
+ 792  01A8              
+ 793  01A8              SetFeature_2:
+ 794  01A8              
+ 795  01A8              ;;----------------------------------
+ 796  01A8              		;Modify for Remote Wakeup
+ 797  01A8  3000     E  		set     b_wakeup
+ 798  01A9  3000     E     		set     bRmtWakeup
+ 799  01AA                 		;----------------------- 
+ 800  01AA  2000     R  		CALL		Send_Hand_Shake
+ 801  01AB              SetFeature_Loop:
+ 802  01AB              SetFeature_End:
+ 803  01AB  2800     E  		JMP		USB_EP0_ISR_END
+ 804  01AC              ;-----------------------------------------------------------
+ 805  01AC              ; Set Feature (Endpoint)
+ 806  01AC              ;-----------------------------------------------------------
+ 807  01AC              SetFeature_Endpoint:
+ 808  01AC  0001        		clr wdt
+ 809  01AD  3800     E  		snz		bFlag_SetConfiguration_Ready
+ 810  01AE  2800     R  		JMP		SendStall0
+ 811  01AF              		
+ 812  01AF  0F7F        		mov		a,07FH
+ 813  01B0  0600     E  		and		a,FIFO_wIndexL
+ 814  01B1              
+ 815  01B1  2000     R  		call		GetPipeBit
+ 816  01B2              		
+ 817  01B2  0080     E  		mov		FIFO_TEMP,A
+ 818  01B3  0724        		mov		a,STALL
+ 819  01B4  0500     E  		or		a,FIFO_TEMP
+ 820  01B5  00A4        		mov		STALL,a
+ 821  01B6              		
+ 822  01B6  2000     R  		CALL		Send_Hand_Shake
+ 823  01B7              
+ 824  01B7              SetFeature_Endpoint_End:
+ 825  01B7  2800     E  		JMP		USB_EP0_ISR_END
+ 826  01B8              ;-----------------------------------------------------------
+ 827  01B8              ; Get Descriptor
+ 828  01B8              ;-----------------------------------------------------------
+ 829  01B8              GetDescriptor:
+ 830  01B8  0001        		clr wdt
+ 831  01B9  3400     E  		CLR		bFlag_RD_HTable
+ 832  01BA  3400     E  		CLR		bFlag_wait_control_out
+ 833  01BB              
+ 834  01BB  0700     E  		MOV		A,FIFO_WvalueH		;80 06 00 01
+ 835  01BC  0C01        		XOR		A,device
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次15
+
+ 836  01BD  3D0A        		SZ		Z
+ 837  01BE  2800     R  		JMP		GetDeviceDescriptor
+ 838  01BF              
+ 839  01BF  0700     E  		MOV		A,FIFO_WvalueH		;80 06 00 02
+ 840  01C0  0C02        		XOR		A,configuration
+ 841  01C1  3D0A        		SZ		Z
+ 842  01C2  2800     R  		JMP		GetConfigurationDescriptor
+ 843  01C3              
+ 844  01C3  0700     E  		MOV		A,FIFO_WvalueH		;80 06 00 03
+ 845  01C4  0C03        		XOR		A,string
+ 846  01C5  3D0A        		SZ		Z
+ 847  01C6  2800     R  		JMP		GetStringDescriptor
+ 848  01C7              
+ 849  01C7              
+ 850  01C7              		;------------------------------------------------------
+ 851  01C7              		;Then test for HID class Descriptor
+ 852  01C7              		;------------------------------------------------------
+ 853  01C7              
+ 854  01C7  0700     E  		MOV		A,FIFO_WvalueH		;81 06 00 22
+ 855  01C8  0C22        		XOR		A,report
+ 856  01C9  3D0A        		SZ		Z
+ 857  01CA  2800     R  		JMP		GetReportDescriptor
+ 858  01CB              
+ 859  01CB  0700     E  		MOV		A,FIFO_WvalueH		;81 06 00 21
+ 860  01CC  0C21        		XOR		A,HID
+ 861  01CD  3D0A        		SZ		Z
+ 862  01CE  2800     R  		JMP		GetHIDDescriptor
+ 863  01CF              		
+ 864  01CF              
+ 865  01CF              
+ 866  01CF  2800     R  		JMP		SendStall0			;can't parser
+ 867  01D0              
+ 868  01D0              ;-----------------------------------------------------------
+ 869  01D0              ; GetConfiguration
+ 870  01D0              ;-----------------------------------------------------------
+ 871  01D0              GetConfiguration:
+ 872  01D0  0001        		clr wdt
+ 873  01D1  0F01        		mov		a,01H
+ 874  01D2  0080     E  		mov		FIFO_SendLen,a
+ 875  01D3              		
+ 876  01D3  0700     E  		mov		a,USB_Configuration
+ 877  01D4  0080     E  		mov		FIFO_OUT1,a
+ 878  01D5              GetConfiguration_Loop:
+ 879  01D5  0001        		clr wdt
+ 880  01D6  2000     R  		call		Check_Real_Cmd
+ 881  01D7  3C00     E  		sz		bFlag_Real_Cmd
+ 882  01D8  2800     R  		jmp		GetConfiguration_End
+ 883  01D9  0001        		clr wdt
+ 884  01DA  2000     R  		call		FIFO0_WR_CHECK
+ 885  01DB  3800     E  		SNZ		bFlag_FIFO_Ready
+ 886  01DC  2800     R  		JMP		GetConfiguration_Loop
+ 887  01DD              
+ 888  01DD  2000     R  		CALL		Write_FIFO0
+ 889  01DE              GetConfiguration_End:
+ 890  01DE  2800     E  		JMP		USB_EP0_ISR_END
+ 891  01DF              		
+ 892  01DF              
+ 893  01DF              
+ 894  01DF              ;------------------------------------------------------
+ 895  01DF              ;Report
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次16
+
+ 896  01DF              ;------------------------------------------------------
+ 897  01DF              SetReport:
+ 898  01DF  0001        		clr wdt
+ 899  01E0  0700     E  		mov		a,FIFO_wValueH
+ 900  01E1  0C02        		xor		a,set_output_report
+ 901  01E2  3D0A        		sz		z
+ 902  01E3  2800     R  		jmp		SetOutputReport
+ 903  01E4              		
+ 904  01E4  2800     E  		JMP		USB_EP0_ISR_END
+ 905  01E5              SetReport_End:
+ 906  01E5              
+ 907  01E5              SetOutputReport:
+ 908  01E5  0001        		clr wdt
+ 909  01E6              		;check interface
+ 910  01E6  0700     E  		mov		a,FIFO_wIndexL
+ 911  01E7  0C02        		xor		a,02H
+ 912  01E8  390A        		snz		z
+ 913  01E9  2800     R  		jmp		SendStall0
+ 914  01EA              		;check length
+ 915  01EA  0700     E  		mov		a,FIFO_wLengthL
+ 916  01EB  0C08        		xor		a,08H
+ 917  01EC  390A        		snz		z
+ 918  01ED  2800     R  		jmp		SendStall0
+ 919  01EE              		
+ 920  01EE  0F21        		mov		a,21H
+ 921  01EF  0080     E  		mov		nCmdIndex1,a
+ 922  01F0              		
+ 923  01F0              		
+ 924  01F0              SetOutputReport_End:
+ 925  01F0  2800     E  		JMP		USB_EP0_ISR_END
+ 926  01F1              ;------------------------------------------------------
+ 927  01F1              ;Audio class 
+ 928  01F1              ;------------------------------------------------------
+ 929  01F1              ;21 01
+ 930  01F1              SetCur:
+ 931  01F1  0001        		clr wdt
+ 932  01F2  0700     E  		MOV		A,FIFO_WVALUEH
+ 933  01F3  0C01        		XOR		A,MUTE_CONTROL
+ 934  01F4  3D0A        		SZ		Z
+ 935  01F5  2800     R  		JMP		MuteControl
+ 936  01F6              
+ 937  01F6  0700     E  		MOV		A,FIFO_WVALUEH
+ 938  01F7  0C02        		XOR		A,VOLUME_CONTROL
+ 939  01F8  3D0A        		SZ		Z
+ 940  01F9  2800     R  		JMP		VolumeControl
+ 941  01FA              
+ 942  01FA  2800     R  		JMP		SendStall0			;can't parser
+ 943  01FB              
+ 944  01FB              ;21 01 00 01
+ 945  01FB              MuteControl:			;(if have more feature , the state must be modify!!)
+ 946  01FB  0001        		clr wdt
+ 947  01FC  0F18        		mov		a,18h
+ 948  01FD  0080     E  		mov		nCmdIndex1,a
+ 949  01FE              
+ 950  01FE              		;;RET
+ 951  01FE              		;;modify 2005-12-13
+ 952  01FE  2800     E  		jmp		USB_EP0_ISR_END
+ 953  01FF              ;21 01 00 02
+ 954  01FF              VolumeControl:
+ 955  01FF  0001        		clr wdt
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次17
+
+ 956  0200  0F28        		mov		a,28h
+ 957  0201  0080     E  		mov		nCmdIndex1,a		
+ 958  0202              		;;RET
+ 959  0202              		;;modify 2005-12-13
+ 960  0202  2800     E  		jmp		USB_EP0_ISR_END
+ 961  0203              
+ 962  0203              ;return D2 00 = -46 db
+ 963  0203              ;return BC 00 = -32 db (セ E0)
+ 964  0203              GetMin:
+ 965  0203  0001        		clr wdt
+ 966  0204  0F00        		MOV		A,00H
+ 967  0205  0080     E  		MOV		FIFO_OUT1,A
+ 968  0206              ;;		MOV		A,0E0H
+ 969  0206  0FC8        		MOV		A,Min_Volume
+ 970  0207  0080     E  		MOV		FIFO_OUT2,A
+ 971  0208  0F02        		MOV		A,02H
+ 972  0209  0080     E  		MOV		FIFO_SendLen,A
+ 973  020A              GetMin_Loop:
+ 974  020A  0001        		clr wdt
+ 975  020B  2000     R  		call		Check_Real_Cmd
+ 976  020C  3C00     E  		sz		bFlag_Real_Cmd
+ 977  020D  2800     R  		jmp		GetMin_End
+ 978  020E  0001        		clr wdt
+ 979  020F  2000     R  		call		FIFO0_WR_CHECK
+ 980  0210  3800     E  		SNZ		bFlag_FIFO_Ready
+ 981  0211  2800     R  		JMP		GetMin_Loop
+ 982  0212              		
+ 983  0212  2000     R  		CALL		Write_FIFO0
+ 984  0213              GetMin_End:		
+ 985  0213              		;;RET
+ 986  0213              		;;2005-12-13 modify
+ 987  0213  2800     E  		jmp		USB_EP0_ISR_END
+ 988  0214              
+ 989  0214              
+ 990  0214              ;return 0x0C00
+ 991  0214              GetMax:
+ 992  0214  0001        		clr wdt
+ 993  0215  0F00        		MOV		A,00H
+ 994  0216  0080     E  		MOV		FIFO_OUT1,A
+ 995  0217              ;;		MOV		A,0CH
+ 996  0217  0F00        		MOV		A,Max_Volume
+ 997  0218  0080     E  		MOV		FIFO_OUT2,A
+ 998  0219  0F02        		MOV		A,02H
+ 999  021A  0080     E  		MOV		FIFO_SendLen,A
+1000  021B              GetMax_Loop:
+1001  021B  0001        		clr wdt
+1002  021C  2000     R  		call		Check_Real_Cmd
+1003  021D  3C00     E  		sz		bFlag_Real_Cmd
+1004  021E  2800     R  		jmp		GetMax_End
+1005  021F  0001        		clr wdt
+1006  0220              
+1007  0220  2000     R  		call		FIFO0_WR_CHECK
+1008  0221  3800     E  		SNZ		bFlag_FIFO_Ready
+1009  0222  2800     R  		JMP		GetMax_Loop
+1010  0223              		
+1011  0223              		
+1012  0223  2000     R  		CALL		Write_FIFO0
+1013  0224              GetMax_End:
+1014  0224              ;		RET
+1015  0224              		;;2005-12-13 modify
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次18
+
+1016  0224  2800     E  		jmp		USB_EP0_ISR_END
+1017  0225              
+1018  0225              
+1019  0225              
+1020  0225              
+1021  0225              
+1022  0225              ;return 0x0100 1db		
+1023  0225              GetRes:
+1024  0225  0001        		clr wdt
+1025  0226  0F00        		MOV		A,00H
+1026  0227  0080     E  		MOV		FIFO_OUT1,A
+1027  0228  0F01        		MOV		A,01H
+1028  0229  0080     E  		MOV		FIFO_OUT2,A
+1029  022A  0F02        		MOV		A,02H
+1030  022B  0080     E  		MOV		FIFO_SendLen,A
+1031  022C              GetRes_Loop:
+1032  022C  0001        		clr wdt
+1033  022D  2000     R  		call		Check_Real_Cmd
+1034  022E  3C00     E  		sz		bFlag_Real_Cmd
+1035  022F  2800     R  		jmp		GetRes_End
+1036  0230              
+1037  0230  2000     R  		call		FIFO0_WR_CHECK
+1038  0231  3800     E  		SNZ		bFlag_FIFO_Ready
+1039  0232  2800     R  		JMP		GetRes_Loop
+1040  0233              		
+1041  0233  2000     R  		CALL		Write_FIFO0
+1042  0234              GetRes_End:
+1043  0234              ;		RET
+1044  0234              		;;2005-12-13 modify
+1045  0234  2800     E  		jmp		USB_EP0_ISR_END
+1046  0235              
+1047  0235              
+1048  0235              GetCur:
+1049  0235              ;;		call		Check_Real_Cmd
+1050  0235              ;;		sz		bFlag_Real_Cmd
+1051  0235              ;;		jmp		GetCur_End
+1052  0235              ;;
+1053  0235              ;;
+1054  0235              ;;		call		FIFO0_WR_CHECK
+1055  0235              ;;		SNZ		bFlag_FIFO_Ready
+1056  0235              ;;		JMP		GetCur
+1057  0235              
+1058  0235              ;;		
+1059  0235              ;;		MOV		A,FIFO_wLengthL
+1060  0235              ;;		MOV		FIFO_SendLen,A
+1061  0235              ;;		
+1062  0235              ;;		MOV		FIFO_TEMP,A
+1063  0235              ;;		MOV		A,OFFSET FIFO_OUT1
+1064  0235              ;;		MOV		MP1,A
+1065  0235              ;;GetCur_Fill0:
+1066  0235              ;;		MOV		A,00H
+1067  0235              ;;		MOV		R1,A
+1068  0235              ;;		INC		MP1
+1069  0235              ;;		DEC		FIFO_TEMP
+1070  0235              ;;		MOV		A,00H
+1071  0235              ;;		XOR		A,FIFO_TEMP
+1072  0235              ;;		SNZ		Z
+1073  0235              ;;		JMP		GetCur_Fill0
+1074  0235              ;;		CALL		Write_FIFO0
+1075  0235  0001        		clr wdt
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次19
+
+1076  0236  0700     E  		MOV		A,FIFO_wLengthL
+1077  0237  0080     E  		MOV		FIFO_SendLen,A
+1078  0238              		
+1079  0238  0F01        		MOV		A,01H
+1080  0239  0400     E  		XOR		A,FIFO_SendLen
+1081  023A  3D0A        		sz		z
+1082  023B  2800     R  		jmp		GetCur_Mute
+1083  023C              
+1084  023C  0F02        		MOV		A,02H
+1085  023D  0400     E  		XOR		A,FIFO_SendLen
+1086  023E  3D0A        		sz		z
+1087  023F  2800     R  		jmp		GetCur_Volume
+1088  0240  2800     R  		jmp		GetCur_End
+1089  0241              
+1090  0241              GetCur_Mute:
+1091  0241  0001        		clr wdt
+1092  0242  0F00        		MOV		A,00H
+1093  0243  3C00     E  		sz		bFlag_Audio_Mute
+1094  0244  0F01        		MOV		A,01H
+1095  0245  0080     E  		mov		FIFO_OUT1,A
+1096  0246              GetCur_Mute_Loop:
+1097  0246  0001        		clr wdt
+1098  0247  2000     R  		call		Check_Real_Cmd
+1099  0248  3C00     E  		sz		bFlag_Real_Cmd
+1100  0249  2800     R  		jmp		GetCur_End
+1101  024A              
+1102  024A              
+1103  024A  2000     R  		call		FIFO0_WR_CHECK
+1104  024B  3800     E  		SNZ		bFlag_FIFO_Ready
+1105  024C  2800     R  		JMP		GetCur_Mute_Loop
+1106  024D              
+1107  024D  2000     R  		call		Write_FIFO0
+1108  024E  2800     R  		jmp		GetCur_End
+1109  024F              GetCur_Volume:
+1110  024F  0001        		clr wdt
+1111  0250  0700     E  		MOV		A,VolumeH_Save
+1112  0251  0080     E  		mov		FIFO_OUT1,A
+1113  0252              
+1114  0252  0700     E  		MOV		A,VolumeL_Save
+1115  0253  0080     E  		mov		FIFO_OUT2,A
+1116  0254              GetCur_Volume_Loop:
+1117  0254  0001        		clr wdt
+1118  0255  2000     R  		call		Check_Real_Cmd
+1119  0256  3C00     E  		sz		bFlag_Real_Cmd
+1120  0257  2800     R  		jmp		GetCur_End
+1121  0258              
+1122  0258              
+1123  0258  2000     R  		call		FIFO0_WR_CHECK
+1124  0259  3800     E  		SNZ		bFlag_FIFO_Ready
+1125  025A  2800     R  		JMP		GetCur_Volume_Loop
+1126  025B              
+1127  025B  2000     R  		call		Write_FIFO0
+1128  025C  2800     R  		jmp		GetCur_End
+1129  025D              GetCur_End:
+1130  025D              ;		RET
+1131  025D              		;;2005-12-13 modify
+1132  025D  2800     E  		jmp		USB_EP0_ISR_END
+1133  025E              
+1134  025E              ;--------------------------------------------------------------
+1135  025E              ; ゼЧΘ
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次20
+
+1136  025E              SetIdle:
+1137  025E  2800     R  		JMP		SendStall0			;can't parser
+1138  025F              
+1139  025F              ;==============================================================
+1140  025F              ;Standard Get Descriptor routines
+1141  025F              ;
+1142  025F              ;Return the device descriptor to the host
+1143  025F              GetDeviceDescriptor:
+1144  025F  0001        		clr wdt
+1145  0260  0F00     E  		MOV		A,LOW device_desc_table
+1146  0261  0087        		MOV		TBLP,A
+1147  0262  1D80     E  		TABRDL		data_count
+1148  0263              		;modify 2005-12-02
+1149  0263  2000     R  		CALL		Execute
+1150  0264  2800     E  		jmp		USB_EP0_ISR_END
+1151  0265              
+1152  0265              GetConfigurationDescriptor:
+1153  0265  0001        		clr wdt
+1154  0266  0F00     E  		MOV		A,LOW config_desc_length
+1155  0267  0087        		MOV		TBLP,A
+1156  0268  1D80     E  		TABRDL		data_count
+1157  0269  0F00     E  		MOV		A,LOW config_desc_table
+1158  026A              		;modify 2005-12-02
+1159  026A  2000     R  		call		Execute		
+1160  026B  2800     E  		jmp		USB_EP0_ISR_END
+1161  026C              ;Not Ready!!!!!!!!!
+1162  026C              GetStringDescriptor:
+1163  026C  0001        		clr wdt
+1164  026D  0700     E  		MOV		A,FIFO_WVALUEL
+1165  026E  0C00        		XOR		A,00H
+1166  026F  3D0A        		SZ		Z
+1167  0270  2800     R  		JMP		LanguageString
+1168  0271              
+1169  0271  0700     E  		MOV		A,FIFO_WVALUEL
+1170  0272  0C01        		XOR		A,01H
+1171  0273  3D0A        		SZ		Z
+1172  0274  2800     R  		JMP		ManufacturerString
+1173  0275              
+1174  0275  0700     E  		MOV		A,FIFO_WVALUEL
+1175  0276  0C02        		XOR		A,02H
+1176  0277  3D0A        		SZ		Z
+1177  0278  2800     R  		JMP		ProductString
+1178  0279              
+1179  0279  0700     E  		MOV		A,FIFO_WVALUEL
+1180  027A  0C03        		XOR		A,03H
+1181  027B  3D0A        		SZ		Z
+1182  027C  2800     R  		JMP		SerialNumberString
+1183  027D              	
+1184  027D              	
+1185  027D  2800     R  		JMP		SendStall0			;other no support
+1186  027E              
+1187  027E              LanguageString:
+1188  027E  0001        		clr wdt
+1189  027F  0F00     E  		MOV		A,LOW USBStringLanguageDescription
+1190  0280  0087        		MOV		TBLP,A
+1191  0281  1D80     E  		TABRDL		data_count
+1192  0282  0F00     E  		MOV		A,LOW USBStringLanguageDescription
+1193  0283              		;modify 2005-12-02
+1194  0283  2000     R  		call		execute
+1195  0284  2800     E  		jmp		USB_EP0_ISR_END
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次21
+
+1196  0285              ManufacturerString:
+1197  0285  0001        		clr wdt
+1198  0286  0F00     E  		MOV		A,LOW USBStringDescription1
+1199  0287  0087        		MOV		TBLP,A
+1200  0288  1D80     E  		TABRDL		data_count
+1201  0289  0F00     E  		MOV		A,LOW USBStringDescription1
+1202  028A              		;modify 2005-12-02
+1203  028A  2000     R  		call		execute
+1204  028B  2800     E  		jmp		USB_EP0_ISR_END
+1205  028C              ProductString:
+1206  028C  0001        		clr wdt
+1207  028D  0F00     E  		MOV		A,LOW USBStringDescription2
+1208  028E  0087        		MOV		TBLP,A
+1209  028F  1D80     E  		TABRDL		data_count
+1210  0290  0F00     E  		MOV		A,LOW USBStringDescription2
+1211  0291              		;modify 2005-12-02
+1212  0291  2000     R  		call		execute
+1213  0292  2800     E  		jmp		USB_EP0_ISR_END
+1214  0293              
+1215  0293              
+1216  0293              SerialNumberString:
+1217  0293  0001        		clr wdt
+1218  0294  0F00     E  		MOV		A,LOW USBStringDescription3
+1219  0295  0087        		MOV		TBLP,A
+1220  0296  1D80     E  		TABRDL		data_count
+1221  0297  0F00     E  		MOV		A,LOW USBStringDescription3
+1222  0298              		;modify 2005-12-02
+1223  0298  2000     R  		call		execute
+1224  0299              		
+1225  0299  2800     E  		jmp		USB_EP0_ISR_END
+1226  029A              
+1227  029A              		
+1228  029A              
+1229  029A              ;--------------------------------------------------
+1230  029A              ;HID class Get Descriptor routines
+1231  029A              ;return the HID descriptor and enable endpoint one
+1232  029A              ;--------------------------------------------------
+1233  029A              GetReportDescriptor:
+1234  029A  0001        		clr wdt
+1235  029B  0F00     E  		MOV		A,LOW report_desc_length
+1236  029C  0087        		MOV		TBLP,A
+1237  029D  1D80     E  		TABRDL		data_count			;Report length = Low byte of Report_Size
+1238  029E  0F00     E  		MOV		A,LOW hid_report_desc_table
+1239  029F  2000     R  		CALL		execute			;send descriptor to host
+1240  02A0              		;
+1241  02A0              		;Enumeration is complete!!
+1242  02A0              		;
+1243  02A0  3000     E  		set		bFlag_Enum_Ready		;set Enumeration flag
+1244  02A1              		;modify 2005-12-02
+1245  02A1  2800     E  		jmp		USB_EP0_ISR_END		
+1246  02A2              
+1247  02A2              GetHIDDescriptor:
+1248  02A2  0001        		clr wdt
+1249  02A3  0F00     E  		MOV		A,LOW hid_desc_length
+1250  02A4  0087        		MOV		TBLP,A
+1251  02A5  1D80     E  		TABRDL		data_count			;Report length = Low byte of Report_Size
+1252  02A6  0F00     E  		MOV		A,LOW HID_Desc
+1253  02A7              		;modify 2005-12-02
+1254  02A7  2000     R  		CALL		execute			;send descriptor to host
+1255  02A8  2800     E  		jmp		USB_EP0_ISR_END		
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次22
+
+1256  02A9              
+1257  02A9              Execute:
+1258  02A9  0001        		clr wdt
+1259  02AA  0080     E  		MOV		data_start,A
+1260  02AB  2000     R  		call		get_descriptor_length
+1261  02AC  2000     R  		call		control_read
+1262  02AD  0003        		RET				
+1263  02AE              
+1264  02AE              ;===============================================================
+1265  02AE              SendStall0:
+1266  02AE  3024        		SET		STALL.@STALL_STL0
+1267  02AF  2800     E  		JMP		USB_EP0_ISR_END		
+1268  02B0              						;return to USB_EP0_ISR		
+1269  02B0              
+1270  02B0              
+1271  02B0              
+1272  02B0              
+1273  02B0              
+1274  02B0              
+1275  02B0              
+1276  02B0              
+1277  02B0              
+1278  02B0              
+1279  02B0              
+1280  02B0              
+1281  02B0              
+1282  02B0              ;***************************************************************
+1283  02B0              ;		Delay Test Function
+1284  02B0              ;		Most instructions Timing is one cycles = 0.33333 us
+1285  02B0              ;		call , jmp , ret is 2 cycles
+1286  02B0              ;***************************************************************
+1287  02B0              
+1288  02B0              Delay_28us:
+1289  02B0  0F1E        			mov		a,1EH	
+1290  02B1              Delay_28us_cont:
+1291  02B1  0001        			clr wdt
+1292  02B2  1785        			sdz		acc
+1293  02B3  2800     R  			jmp		Delay_28us_cont
+1294  02B4              Delay_3us:
+1295  02B4  0001        			clr wdt
+1296  02B5  0000        			NOP
+1297  02B6  0000        			NOP
+1298  02B7  0000        			NOP
+1299  02B8  0000        			NOP
+1300  02B9  0001        			clr wdt
+1301  02BA  0003        			ret
+1302  02BB              
+1303  02BB              
+1304  02BB              ;----BEGIN (Get pipe bit)
+1305  02BB              ;Input : ACC pipe number
+1306  02BB              ;Output: ACC pip bit (D0:pipe 0, D1:pipe 1...)
+1307  02BB              GetPipeBit:		 		
+1308  02BB  1485                        INC     ACC
+1309  02BC  0080     E                  MOV     FIFO_TEMP,A
+1310  02BD  0F80                        MOV     A,80H
+1311  02BE              GetPipeBitLoop:
+1312  02BE  0001        				clr wdt
+1313  02BF  1885                        RL      ACC
+1314  02C0  1780     E                  SDZ     FIFO_TEMP 
+1315  02C1  2800     R                  JMP     GetPipeBitLoop
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次23
+
+1316  02C2  0003                        RET
+1317  02C3              ;----END (Get pipe bit)
+1318  02C3              
+1319  02C3              
+1320  02C3              		
+1321  02C3              		
+1322  02C3              Public		Control_Read
+1323  02C3              Public		FIFO0_RD_CHECK
+1324  02C3              Public		FIFO1_RD_CHECK
+1325  02C3              Public		FIFO2_RD_CHECK
+1326  02C3              Public		FIFO3_RD_CHECK
+1327  02C3              Public		FIFO4_RD_CHECK
+1328  02C3              Public		FIFO5_RD_CHECK
+1329  02C3              Public		FIFO0_WR_CHECK
+1330  02C3              Public		FIFO1_WR_CHECK
+1331  02C3              Public		FIFO2_WR_CHECK
+1332  02C3              Public		FIFO3_WR_CHECK
+1333  02C3              Public		FIFO4_WR_CHECK
+1334  02C3              Public		FIFO5_WR_CHECK
+1335  02C3              Public		Read_FIFO0
+1336  02C3              Public		Read_FIFO1
+1337  02C3              Public		Read_FIFO2
+1338  02C3              Public		Read_FIFO3
+1339  02C3              Public		Read_FIFO4
+1340  02C3              Public		Read_FIFO5
+1341  02C3              Public		Write_FIFO0
+1342  02C3              Public		Write_FIFO1
+1343  02C3              Public		Write_FIFO2
+1344  02C3              Public		Write_FIFO3
+1345  02C3              Public		Write_FIFO4
+1346  02C3              Public		Write_FIFO5
+1347  02C3              Public		Send_Hand_Shake
+1348  02C3              Public		get_descriptor_length
+1349  02C3              
+1350  02C3              
+1351  02C3              
+1352  02C3              Public		SetAddress
+1353  02C3              Public		SetConfiguration
+1354  02C3              Public		SetInterface
+1355  02C3              Public		GetInterface
+1356  02C3              Public		GetDescriptor
+1357  02C3              Public		SetIdle
+1358  02C3              Public		GetDeviceDescriptor
+1359  02C3              Public		GetConfigurationDescriptor
+1360  02C3              Public		GetStringDescriptor
+1361  02C3              Public		GetStatus
+1362  02C3              ;modify for Remote Wakeup
+1363  02C3              Public		GetStatus_Interface
+1364  02C3              ;---------------------------------
+1365  02C3              Public		SetFeature
+1366  02C3              Public		ClearFeature
+1367  02C3              Public		SetFeature_Endpoint
+1368  02C3              Public		ClearFeature_Endpoint
+1369  02C3              Public		GetStatus_Endpoint
+1370  02C3              
+1371  02C3              Public		SetReport
+1372  02C3              
+1373  02C3              Public		Check_Real_Cmd
+1374  02C3              
+1375  02C3              Public		Execute
+文件：FUNCTION.ASM 盛群编译器版本 2.86 页次24
+
+1376  02C3              Public		SendStall0
+1377  02C3              
+1378  02C3              Public		GetConfiguration
+1379  02C3              
+1380  02C3              Public		Delay_3us
+1381  02C3              
+1382  02C3              
+1383  02C3              Public		SetCur
+1384  02C3              Public		GetMin
+1385  02C3              Public		GetMax
+1386  02C3              Public		GetRes
+1387  02C3              Public		GetCur
+1388  02C3              Public		GetPipeBit
+
+
+        0 Errors

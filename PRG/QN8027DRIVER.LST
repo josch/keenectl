@@ -1,0 +1,183 @@
+文件：QN8027DRIVER.ASM 盛群编译器版本 2.86 页次1
+
+
+   1  0000              ;;-----------------------------------------------
+   2  0000              ;;function:	QN8072_I2C_Read_Data
+   3  0000              ;;in:		mFMAddr
+   4  0000              ;;out:		mFMData
+   5  0000              ;;description:	Read AS6600 data
+   6  0000              ;;-----------------------------------------------
+   7  0000              QN8072_I2C_Read_Data:
+   8  0000              
+   9  0000              L_I2CRd_Data_lp:
+  10  0000  0001        	CLR	WDT
+  11  0001              		
+  12  0001  0000        	CLR	mFMACK
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 12 : 语法错误
+  13  0002  2000     R  	CALL	I2C_START
+  14  0003  0F00        	MOV	A,QN8072_I2C_WRITE_ADDR
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 14 : 未定义的符号 'QN8072_I2C_WRITE_ADDR'
+  15  0004  0000        	MOV	mFMSend,A		;;Set send data
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 15 : 语法错误
+  16  0005  2000     R  	CALL	Write_I2C_Byte		;;Send data
+  17  0006              	
+  18  0006  0F00        	MOV	A,mFMAddr
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 18 : 未定义的符号 'mFMAddr'
+  19  0007  0000        	MOV	mFMSend,A
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 19 : 语法错误
+  20  0008  2000     R  	CALL	Write_I2C_Byte
+  21  0009              	
+  22  0009  0F00        	MOV	A,mFMACK
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 22 : 未定义的符号 'mFMACK'
+  23  000A  0D00        	OR	A,0
+  24  000B  0000        	SNZ	Z			;;Z=1,OK
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 24 : 语法错误
+  25  000C  2800     R  	JMP	L_I2CRd_Data_lp
+  26  000D              ;;	
+  27  000D              L_I2CRd_Data_lp2:
+  28  000D  0001        	CLR	WDT
+  29  000E              	
+  30  000E  0000        	CLR	mFMACK
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 30 : 语法错误
+  31  000F  2000     R  	CALL	I2C_START
+  32  0010              	
+  33  0010  0F00        	MOV	A,QN8072_I2C_READ_ADDR
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 33 : 未定义的符号 'QN8072_I2C_READ_ADDR'
+  34  0011  0000        	MOV	mFMSend,A		;;Set send data
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 34 : 语法错误
+  35  0012  2000     R  	CALL	Write_I2C_Byte		;;Send data
+  36  0013              	
+  37  0013  0F00        	MOV	A,mFMACK
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 37 : 未定义的符号 'mFMACK'
+  38  0014  0D00        	OR	A,0
+  39  0015  0000        	SNZ	Z			;;Z=1,OK
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 39 : 语法错误
+  40  0016  2800     R  	JMP	L_I2CRd_Data_lp2
+  41  0017              	
+  42  0017  2000     R  	CALL	Read_I2C_Byte
+  43  0018  0000        	MOV	mFMData,A
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 43 : 语法错误
+  44  0019  2000     R  	CALL	sendNoAck
+  45  001A              	
+  46  001A  2000     R  	CALL	I2C_STOP
+文件：QN8027DRIVER.ASM 盛群编译器版本 2.86 页次2
+
+  47  001B  0003        	RET	
+  48  001C              	
+  49  001C              ;;-----------------------------------------------
+  50  001C              ;;function:	QN8027_I2C_Write_Data
+  51  001C              ;;in:		mFMAddr,mFMData
+  52  001C              ;;out:		
+  53  001C              ;;description:	Write QN8027 data
+  54  001C              ;;-----------------------------------------------	
+  55  001C              QN8027_I2C_Write_Data:
+  56  001C              
+  57  001C              L_I2CWt_Data_lp:
+  58  001C  0001        	CLR	WDT
+  59  001D              		
+  60  001D  0000        	CLR	mFMACK
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 60 : 语法错误
+  61  001E  2000     R  	CALL	I2C_START
+  62  001F  0F00        	MOV	A,QN8072_I2C_WRITE_ADDR
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 62 : 未定义的符号 'QN8072_I2C_WRITE_ADDR'
+  63  0020  0000        	MOV	mFMSend,A		;;Set send data
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 63 : 语法错误
+  64  0021  2000     R  	CALL	Write_I2C_Byte		;;Send data
+  65  0022              	
+  66  0022  0F00        	MOV	A,mFMAddr
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 66 : 未定义的符号 'mFMAddr'
+  67  0023  0000        	MOV	mFMSend,A
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 67 : 语法错误
+  68  0024  2000     R  	CALL	Write_I2C_Byte
+  69  0025              	
+  70  0025  0F00        	MOV	A,mFMData
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 70 : 未定义的符号 'mFMData'
+  71  0026  0000        	MOV	mFMSend,A
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 71 : 语法错误
+  72  0027  2000     R  	CALL	Write_I2C_Byte
+  73  0028              	
+  74  0028  2000     R  	CALL	I2C_STOP
+  75  0029              	
+  76  0029  0F00        	MOV	A,mFMACK
+Error(A0005) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 76 : 未定义的符号 'mFMACK'
+  77  002A  0D00        	OR	A,0
+  78  002B  0000        	SNZ	Z			;;Z=1,OK
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 78 : 语法错误
+  79  002C  2800     R  	JMP	L_I2CWt_Data_lp
+  80  002D              	
+  81  002D  0003        	RET
+  82  002E              
+  83  002E              ;;-----------------------------------------------
+  84  002E              ;;function:	Delay5us
+  85  002E              ;;in:		NULL
+  86  002E              ;;out:		NULL
+  87  002E              ;;description:	Delay 5us
+  88  002E              ;;-----------------------------------------------
+  89  002E              Delay5us:
+  90  002E  2800     R  	JMP	$+1
+  91  002F  2800     R  	JMP	$+1
+  92  0030  2800     R  	JMP	$+1
+  93  0031  2800     R  	JMP	$+1
+  94  0032  2800     R  	JMP	$+1
+  95  0033  2800     R  	JMP	$+1
+  96  0034  2800     R  	JMP	$+1
+  97  0035  0000        	NOP
+文件：QN8027DRIVER.ASM 盛群编译器版本 2.86 页次3
+
+  98  0036  0003        	RET
+  99  0037              	
+ 100  0037              ;;-----------------------------------------------
+ 101  0037              ;;function:	sendAck
+ 102  0037              ;;in:		NULL
+ 103  0037              ;;out:		NULL
+ 104  0037              ;;description:	Send ACK
+ 105  0037              ;;-----------------------------------------------
+ 106  0037              sendAck:
+ 107  0037  0000        	CLR	P_SDA			;;0
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 107 : 语法错误
+ 108  0038  2000     R  	CALL	Delay5us
+ 109  0039              	
+ 110  0039  0000        	SET	P_SCL
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 110 : 语法错误
+ 111  003A  2000     R  	CALL	Delay5us
+ 112  003B  0000        	CLR	P_SCL
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 112 : 语法错误
+ 113  003C  2000     R  	CALL	Delay5us
+ 114  003D  0003        	RET
+ 115  003E              	
+ 116  003E              ;;-----------------------------------------------
+ 117  003E              ;;function:	sendNoAck
+ 118  003E              ;;in:		NULL
+ 119  003E              ;;out:		NULL
+ 120  003E              ;;description:	Send No ACK
+ 121  003E              ;;-----------------------------------------------
+ 122  003E              sendNoAck:
+ 123  003E  0000        	SET	P_SDA			;;1
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 123 : 语法错误
+ 124  003F  2000     R  	CALL	Delay5us
+ 125  0040              	
+ 126  0040  0000        	SET	P_SCL
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 126 : 语法错误
+ 127  0041  2000     R  	CALL	Delay5us
+ 128  0042  0000        	CLR	P_SCL
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 128 : 语法错误
+ 129  0043  2000     R  	CALL	Delay5us
+ 130  0044  0003        	RET
+ 131  0045              
+ 132  0045              ;;-----------------------------------------------
+ 133  0045              ;;function:	Read_I2C_Byte
+ 134  0045              ;;in:		NULL
+ 135  0045              ;;out:		ACC
+ 136  0045              ;;description:	Read data
+ 137  0045              ;;-----------------------------------------------
+ 138  0045              Read_I2C_Byte:
+ 139  0045  0000        	CLR	mFMSend
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 139 : 语法错误
+ 140  0046  0F08        	MOV	A,8D
+ 141  0047  0000        	MOV	mFMCnt,A
+Error(A0024) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM 141 : 语法错误
+Error(A0052) E:\项目\USB 音频发射\USB AUDIO(PC)\COD\PRG\QN8027DRIVER.ASM : 错误过多
+
+
+
+        31 Errors
